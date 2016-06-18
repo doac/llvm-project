@@ -84,7 +84,7 @@ def IsREX : Predicate<"Subtarget->isREX()">;
 
 def simm11  : PatLeaf<(imm), [{ return isInt<11>(N->getSExtValue()); }]>;
 
-def simm13  : PatLeaf<(imm), [{ return isInt<13>(N->getSExtValue()); }]>;
+def simm13  : PatLeaf<(imm), [{ return (Subtarget->isREX() && isInt<7>(N->getSExtValue())) || (!Subtarget->isREX() && isInt<13>(N->getSExtValue())); }]>;
 
 def LO10 : SDNodeXForm<imm, [{
   return CurDAG->getTargetConstant((unsigned)N->getZExtValue() & 1023, SDLoc(N),
