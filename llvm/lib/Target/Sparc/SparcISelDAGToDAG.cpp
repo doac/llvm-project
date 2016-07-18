@@ -386,6 +386,50 @@ void SparcDAGToDAGISel::Select(SDNode *N) {
     CurDAG->SelectNodeTo(N, Opcode, MVT::i32, DivLHS, DivRHS, TopPart);
     return;
   }
+  case ISD::LOAD: {
+
+    LoadSDNode *LD = cast<LoadSDNode>(N);
+
+    if (LD->getAddressingMode() != ISD::POST_INC)
+      break;
+
+    MVT VT = LD->getMemoryVT().getSimpleVT();
+
+    unsigned Opcode = 0;
+
+    switch (VT.SimpleTy) {
+    case MVT::i8:
+      assert(LD->getExtensionType() != ISD::SEXTLOAD);
+      Opcode = SP::RLDUBinc;
+      VT = MVT::i32;
+      break;
+    case MVT::i16:
+      assert(LD->getExtensionType() != ISD::SEXTLOAD);
+      Opcode = SP::RLDUHinc;
+      VT = MVT::i32;
+      break;
+    case MVT::i32:
+      Opcode = SP::RLDinc;
+      break;
+    case MVT::v2i32:
+      Opcode = SP::RLDDinc;
+      break;
+    case MVT::f32:
+      Opcode = SP::RLDFinc;
+      break;
+    case MVT::f64:
+      Opcode = SP::RLDDFinc;
+      break;
+    default:
+      llvm_unreachable("Unknown type");
+      break;
+    }
+    SDNode *ResNode =
+        CurDAG->getMachineNode(Opcode, SDLoc(N), VT, MVT::i32, MVT::Other,
+                               LD->getBasePtr(), LD->getChain());
+    ReplaceNode(N, ResNode);
+    return;
+  }
   }
 
   SelectCode(N);

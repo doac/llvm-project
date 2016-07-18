@@ -691,6 +691,18 @@ def : Pat<(SPCONST32 tblockaddress:$in), (RSET32 tblockaddress:$in)>;
 def : Pat<(SPCONST32 tconstpool:$in),    (RSET32 tconstpool:$in)>;
 def : Pat<(SPCONST32 tglobaltlsaddr:$in),(RSET32 tglobaltlsaddr:$in)>;
 
+def : Pat<(post_store (i32 RexIntRegs:$rd),      RexIntRegs:$rs, 4),
+          (RSTinc $rs, $rd )>;
+def : Pat<(post_truncsti8 (i32 RexIntRegs:$rd),  RexIntRegs:$rs, 1),
+          (RSTBinc $rs, $rd )>;
+def : Pat<(post_truncsti16 (i32 RexIntRegs:$rd), RexIntRegs:$rs, 2),
+          (RSTHinc $rs, $rd )>;
+def : Pat<(post_store (v2i32 RexIntPair:$rd),    RexIntRegs:$rs, 8),
+          (RSTDinc $rs, $rd )>;
+def : Pat<(post_store (f32 RexFPRegs:$rd),       RexIntRegs:$rs, 4),
+          (RSTFinc $rs, $rd )>;
+def : Pat<(post_store (f64 RexDFPRegs:$rd),      RexIntRegs:$rs, 8),
+          (RSTDFinc $rs, $rd )>;
 }
 
 // Alias

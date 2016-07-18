@@ -1542,6 +1542,23 @@ SparcTargetLowering::SparcTargetLowering(const TargetMachine &TM,
   for (MVT VT : MVT::integer_valuetypes())
     setLoadExtAction(ISD::SEXTLOAD, VT, MVT::i1, Promote);
 
+  // REX supports post incrementing for loads and stores
+  if (Subtarget->isREX()) {
+    setIndexedLoadAction(ISD::POST_INC, MVT::i8, Legal);
+    setIndexedLoadAction(ISD::POST_INC, MVT::i16, Legal);
+    setIndexedLoadAction(ISD::POST_INC, MVT::i32, Legal);
+    setIndexedLoadAction(ISD::POST_INC, MVT::v2i32, Legal);
+    setIndexedLoadAction(ISD::POST_INC, MVT::f32, Legal);
+    setIndexedLoadAction(ISD::POST_INC, MVT::f64, Legal);
+
+    setIndexedStoreAction(ISD::POST_INC, MVT::i8, Legal);
+    setIndexedStoreAction(ISD::POST_INC, MVT::i16, Legal);
+    setIndexedStoreAction(ISD::POST_INC, MVT::i32, Legal);
+    setIndexedStoreAction(ISD::POST_INC, MVT::v2i32, Legal);
+    setIndexedStoreAction(ISD::POST_INC, MVT::f32, Legal);
+    setIndexedStoreAction(ISD::POST_INC, MVT::f64, Legal);
+  }
+
   // Turn FP truncstore into trunc + store.
   setTruncStoreAction(MVT::f64, MVT::f32, Expand);
   setTruncStoreAction(MVT::f128, MVT::f32, Expand);
@@ -3319,6 +3336,50 @@ SparcTargetLowering::expandSelectCC(MachineInstr &MI, MachineBasicBlock *BB,
 
   MI.eraseFromParent(); // The pseudo instruction is gone now.
   return SinkMBB;
+}
+
+/// getPostIndexedAddressParts - returns true by value, base pointer and
+/// offset pointer and addressing mode by reference if this node can be
+/// combined with a load / store to form a post-indexed load / store.
+bool SparcTargetLowering::getPostIndexedAddressParts(SDNode *N, SDNode *Op,
+                                                     SDValue &Base,
+                                                     SDValue &Offset,
+                                                     ISD::MemIndexedMode &AM,
+                                                     SelectionDAG &DAG) const {
+
+  EVT VT;
+  SDValue Ptr;
+  bool IsSEXTLoad = false;
+
+  if (LoadSDNode *LD = dyn_cast<LoadSDNode>(N)) {
+    VT = LD->getMemoryVT();
+    Ptr = LD->getBasePtr();
+    IsSEXTLoad = LD->getExtensionType() == ISD::SEXTLOAD;
+  } else if (StoreSDNode *ST = dyn_cast<StoreSDNode>(N)) {
+    VT = ST->getMemoryVT();
+    Ptr = ST->getBasePtr();
+  } else
+    return false;
+
+  if (Op->getOpcode() != ISD::ADD)
+    return false;
+
+  if (ConstantSDNode *RHS = dyn_cast<ConstantSDNode>(Op->getOperand(1))) {
+    int RHSC = (int)RHS->getZExtValue();
+
+    if ((VT == MVT::i8 && RHSC == 1 && !IsSEXTLoad) ||
+        (VT == MVT::i16 && RHSC == 2 && !IsSEXTLoad) ||
+        ((VT == MVT::i32 || VT == MVT::f32) && RHSC == 4) ||
+        ((VT == MVT::f64 || VT == MVT::v2i32) && RHSC == 8)) {
+
+      Base = Op->getOperand(0);
+      Offset = DAG.getConstant(RHSC, SDLoc(Op), RHS->getValueType(0));
+      AM = ISD::POST_INC;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 //===----------------------------------------------------------------------===//

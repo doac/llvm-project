@@ -261,6 +261,10 @@ namespace llvm {
                                            CallLoweringInfo &CLI,
                                            MachineFunction &MF) const;
 
+    bool getPostIndexedAddressParts(SDNode *N, SDNode *Op, SDValue &Base,
+                                    SDValue &Offset, ISD::MemIndexedMode &AM,
+                                    SelectionDAG &DAG) const override;
+
     bool ShouldShrinkFPConstant(EVT VT) const override {
       // Do not shrink FP constpool if VT == MVT::f128.
       // (ldd, call _Q_fdtoq) is more expensive than two ldds.
