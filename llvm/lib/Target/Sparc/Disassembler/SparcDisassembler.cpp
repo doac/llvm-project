@@ -29,6 +29,11 @@ namespace {
 
 /// A disassembler class for Sparc.
 class SparcDisassembler : public MCDisassembler {
+  DecodeStatus getInstructionREX(MCInst &Instr, uint64_t &Size,
+                                 ArrayRef<uint8_t> Bytes, uint64_t Address,
+                                 raw_ostream &VStream,
+                                 raw_ostream &CStream) const;
+
 public:
   SparcDisassembler(const MCSubtargetInfo &STI, MCContext &Ctx)
       : MCDisassembler(STI, Ctx) {}
@@ -141,13 +146,72 @@ static const unsigned CPRegDecoderTable[] = {
   SP::C28, SP::C29, SP::C30, SP::C31
 };
 
-
 static const uint16_t CPPairDecoderTable[] = {
   SP::C0_C1,   SP::C2_C3,   SP::C4_C5,   SP::C6_C7,
   SP::C8_C9,   SP::C10_C11, SP::C12_C13, SP::C14_C15,
   SP::C16_C17, SP::C18_C19, SP::C20_C21, SP::C22_C23,
   SP::C24_C25, SP::C26_C27, SP::C28_C29, SP::C30_C31
 };
+
+static const unsigned RexIntRegDecoderTable[] = {
+    SP::O0, SP::O1, SP::O2, SP::O3, SP::L4, SP::L5, SP::L6, SP::L7,
+    SP::I0, SP::I1, SP::I2, SP::I3, SP::I4, SP::I5, SP::I6, SP::I7,
+    SP::L0, SP::L1, SP::L2, SP::L3, SP::O4, SP::O5, SP::O6, SP::O7,
+    SP::G0, SP::G1, SP::G2, SP::G3, SP::G4, SP::G5, SP::G6, SP::G7};
+
+static const uint16_t RexIntPairDecoderTable[] = {
+    SP::O0_O1, SP::O2_O3, SP::L4_L5, SP::L6_L7, SP::I0_I1, SP::I2_I3,
+    SP::I4_I5, SP::I6_I7, SP::L0_L1, SP::L2_L3, SP::O4_O5, SP::O6_O7,
+    SP::G0_G1, SP::G2_G3, SP::G4_G5, SP::G6_G7};
+
+static const unsigned RexFPRegDecoderTable[] = {
+    SP::F16, SP::F17, SP::F18, SP::F19, SP::F12, SP::F13, SP::F14, SP::F15,
+    SP::F0,  SP::F1,  SP::F2,  SP::F3,  SP::F4,  SP::F5,  SP::F6,  SP::F7};
+
+static const unsigned RexDFPRegDecoderTable[] = {
+    SP::D8, SP::D9, SP::D6, SP::D7, SP::D0, SP::D1, SP::D2, SP::D3};
+
+static DecodeStatus DecodeRexIntRegsRegisterClass(MCInst &Inst, unsigned RegNo,
+                                                  uint64_t Address,
+                                                  const void *Decoder) {
+  if (RegNo > 31)
+    return MCDisassembler::Fail;
+  unsigned Reg = RexIntRegDecoderTable[RegNo];
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeRexIntPairRegisterClass(MCInst &Inst, unsigned RegNo,
+                                                  uint64_t Address,
+                                                  const void *Decoder) {
+  RegNo >>= 1;
+  if (RegNo > 15)
+    return MCDisassembler::Fail;
+  unsigned Reg = RexIntPairDecoderTable[RegNo];
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeRexFPRegsRegisterClass(MCInst &Inst, unsigned RegNo,
+                                                 uint64_t Address,
+                                                 const void *Decoder) {
+  if (RegNo > 15)
+    return MCDisassembler::Fail;
+  unsigned Reg = RexFPRegDecoderTable[RegNo];
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeRexDFPRegsRegisterClass(MCInst &Inst, unsigned RegNo,
+                                                  uint64_t Address,
+                                                  const void *Decoder) {
+  RegNo >>= 1;
+  if (RegNo > 7)
+    return MCDisassembler::Fail;
+  unsigned Reg = RexDFPRegDecoderTable[RegNo];
+  Inst.addOperand(MCOperand::createReg(Reg));
+  return MCDisassembler::Success;
+}
 
 static DecodeStatus DecodeIntRegsRegisterClass(MCInst &Inst,
                                                unsigned RegNo,
@@ -301,10 +365,18 @@ static DecodeStatus DecodeStoreCP(MCInst &Inst, unsigned insn,
                                    uint64_t Address, const void *Decoder);
 static DecodeStatus DecodeStoreCPPair(MCInst &Inst, unsigned insn,
                                    uint64_t Address, const void *Decoder);
+static DecodeStatus DecodeShortRexBranch(MCInst &MI, unsigned Offset,
+                                         uint64_t Address, const void *Decoder);
+static DecodeStatus DecodeLongRexBranch(MCInst &MI, unsigned Offset,
+                                        uint64_t Address, const void *Decoder);
 static DecodeStatus DecodeCall(MCInst &Inst, unsigned insn,
                                uint64_t Address, const void *Decoder);
+static DecodeStatus DecodeSIMM21(MCInst &Inst, unsigned insn, uint64_t Address,
+                                 const void *Decoder);
 static DecodeStatus DecodeSIMM13(MCInst &Inst, unsigned insn,
                                  uint64_t Address, const void *Decoder);
+static DecodeStatus DecodeSIMM5(MCInst &Inst, unsigned insn, uint64_t Address,
+                                const void *Decoder);
 static DecodeStatus DecodeJMPL(MCInst &Inst, unsigned insn, uint64_t Address,
                                const void *Decoder);
 static DecodeStatus DecodeReturn(MCInst &MI, unsigned insn, uint64_t Address,
@@ -313,6 +385,8 @@ static DecodeStatus DecodeSWAP(MCInst &Inst, unsigned insn, uint64_t Address,
                                const void *Decoder);
 static DecodeStatus DecodeTRAP(MCInst &Inst, unsigned insn, uint64_t Address,
                                const void *Decoder);
+static DecodeStatus DecodeADDRfi(MCInst &MI, unsigned insn, uint64_t Address,
+                                 const void *Decoder);
 
 #include "SparcGenDisassemblerTables.inc"
 
@@ -335,6 +409,71 @@ static DecodeStatus readInstruction32(ArrayRef<uint8_t> Bytes, uint64_t Address,
   return MCDisassembler::Success;
 }
 
+DecodeStatus SparcDisassembler::getInstructionREX(MCInst &Instr, uint64_t &Size,
+                                                  ArrayRef<uint8_t> Bytes,
+                                                  uint64_t Address,
+                                                  raw_ostream &VStream,
+                                                  raw_ostream &CStream) const {
+  DecodeStatus Result;
+  uint64_t Insn;
+
+  if (Bytes.size() < 2) {
+    Size = 0;
+    return MCDisassembler::Fail;
+  }
+
+  Insn = (Bytes[1] << 0) | (Bytes[0] << 8);
+
+  uint32_t rop = Insn >> 14;
+  int bsz = (Insn >> 9) & 1;
+  int rop3 = (Insn >> 5) & 0xF;
+
+  Size = 2;
+  if (rop == 0 && bsz == 1)
+    Size = 4;
+  else if (rop == 1)
+    Size = 4;
+  else if ((rop == 2 || rop == 3) && (rop3 == 7))
+    Size = 4;
+  else if ((rop == 2 || rop == 3) && (rop3 == 15))
+    Size = 6;
+
+  if (Bytes.size() < Size) {
+    Size = 0;
+    return MCDisassembler::Fail;
+  }
+
+  if (Size == 2) {
+    Result = decodeInstruction(DecoderTableSparcRex16, Instr, Insn, Address,
+                               this, STI);
+  } else if (Size == 4) {
+    Insn =
+        (Bytes[3] << 0) | (Bytes[2] << 8) | (Bytes[1] << 16) | (Bytes[0] << 24);
+
+    bool isCall = (Insn >> 30) == 1;
+
+    if (isCall) {
+      Result = decodeInstruction(DecoderTableSparc32, Instr, Insn, Address,
+                                 this, STI);
+    } else {
+      Result = decodeInstruction(DecoderTableSparcRex32, Instr, Insn, Address,
+                                 this, STI);
+    }
+  } else if (Size == 6) {
+    Insn = (Bytes[5] << 0) | (Bytes[4] << 8) | (Bytes[3] << 16) |
+           ((uint64_t)Bytes[2] << 24) | ((uint64_t)Bytes[1] << 32) |
+           ((uint64_t)Bytes[0] << 40);
+    Result = decodeInstruction(DecoderTableSparcRex48, Instr, Insn, Address,
+                               this, STI);
+  } else
+    llvm_unreachable("Unknown instruction size");
+
+  if (Result == MCDisassembler::Fail) {
+    return MCDisassembler::Fail;
+  }
+  return MCDisassembler::Success;
+}
+
 DecodeStatus SparcDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
                                                ArrayRef<uint8_t> Bytes,
                                                uint64_t Address,
@@ -342,8 +481,12 @@ DecodeStatus SparcDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
                                                raw_ostream &CStream) const {
   uint32_t Insn;
   bool isLittleEndian = getContext().getAsmInfo()->isLittleEndian();
-  DecodeStatus Result =
-      readInstruction32(Bytes, Address, Size, Insn, isLittleEndian);
+  DecodeStatus Result;
+
+  if (STI.getFeatureBits()[Sparc::FeatureREX])
+    return getInstructionREX(Instr, Size, Bytes, Address, VStream, CStream);
+
+  Result = readInstruction32(Bytes, Address, Size, Insn, isLittleEndian);
   if (Result == MCDisassembler::Fail)
     return MCDisassembler::Fail;
 
@@ -515,6 +658,25 @@ static bool tryAddingSymbolicOperand(int64_t Value,  bool isBranch,
                                        Offset, Width);
 }
 
+static DecodeStatus DecodeShortRexBranch(MCInst &MI, unsigned Offset,
+                                         uint64_t Address,
+                                         const void *Decoder) {
+
+  int32_t BranchOffset = SignExtend32<8>(Offset) * 2;
+
+  MI.addOperand(MCOperand::createImm(BranchOffset));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeLongRexBranch(MCInst &MI, unsigned Offset,
+                                        uint64_t Address, const void *Decoder) {
+
+  int32_t BranchOffset = SignExtend32<24>(Offset) * 2;
+
+  MI.addOperand(MCOperand::createImm(BranchOffset));
+  return MCDisassembler::Success;
+}
+
 static DecodeStatus DecodeCall(MCInst &MI, unsigned insn,
                                uint64_t Address, const void *Decoder) {
   unsigned tgt = fieldFromInstruction(insn, 0, 30);
@@ -525,10 +687,36 @@ static DecodeStatus DecodeCall(MCInst &MI, unsigned insn,
   return MCDisassembler::Success;
 }
 
+static DecodeStatus DecodeSIMM21(MCInst &MI, unsigned insn, uint64_t Address,
+                                 const void *Decoder) {
+  unsigned tgt = SignExtend32<21>(fieldFromInstruction(insn, 0, 21));
+  MI.addOperand(MCOperand::createImm(tgt));
+  return MCDisassembler::Success;
+}
+
 static DecodeStatus DecodeSIMM13(MCInst &MI, unsigned insn,
                                  uint64_t Address, const void *Decoder) {
   unsigned tgt = SignExtend32<13>(fieldFromInstruction(insn, 0, 13));
   MI.addOperand(MCOperand::createImm(tgt));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeSIMM5(MCInst &MI, unsigned insn, uint64_t Address,
+                                const void *Decoder) {
+  unsigned tgt = SignExtend32<5>(fieldFromInstruction(insn, 0, 5));
+  MI.addOperand(MCOperand::createImm(tgt));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeADDRfi(MCInst &MI, unsigned insn, uint64_t Address,
+                                 const void *Decoder) {
+  unsigned regs[4] = {SP::I6, SP::O6, SP::I0, SP::O0};
+  unsigned rs = fieldFromInstruction(insn, 5, 2);
+  unsigned imm = fieldFromInstruction(insn, 0, 5) << 2;
+
+  MI.addOperand(MCOperand::createReg(regs[rs]));
+  MI.addOperand(MCOperand::createImm(imm));
+
   return MCDisassembler::Success;
 }
 

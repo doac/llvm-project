@@ -159,30 +159,35 @@ def IntRegAsRexAsmOperand  : RegAsmOperandClass { let Name = "IntReg";        }
 def IntRegsAsRex : Operand<iPTR> {
   let MIOperandInfo = (ops IntRegs);
   let EncoderMethod = "getRexIntRegEncoding";
+  let DecoderMethod = "DecodeRexIntRegsRegisterClass";
   let ParserMatchClass = IntRegAsRexAsmOperand;
 }
 
 def RexIntRegsOp : Operand<iPTR> {
   let MIOperandInfo = (ops RexIntRegs);
   let EncoderMethod = "getRexIntRegEncoding";
+  let DecoderMethod = "DecodeRexIntRegsRegisterClass";
   let ParserMatchClass = RexIntRegAsmOperand;
 }
 
 def RexIntPairOp : Operand<v2i32> {
   let MIOperandInfo = (ops RexIntPair);
   let EncoderMethod = "getRexIntRegEncoding";
+  let DecoderMethod = "DecodeRexIntPairRegisterClass";
   let ParserMatchClass = RexIntPairAsmOperand;
 }
 
 def RexFPRegsOp : Operand<f32> {
   let MIOperandInfo = (ops RexFPRegs);
   let EncoderMethod = "getRexFPRegEncoding";
+  let DecoderMethod = "DecodeRexFPRegsRegisterClass";
   let ParserMatchClass = RexFPRegAsmOperand;
 }
 
 def RexDFPRegsOp : Operand<f64> {
   let MIOperandInfo = (ops RexDFPRegs);
   let EncoderMethod = "getRexFPRegEncoding";
+  let DecoderMethod = "DecodeRexDFPRegsRegisterClass";
   let ParserMatchClass = RexDFPRegAsmOperand;
 }
 
@@ -190,22 +195,33 @@ def ADDRr : Operand<iPTR> {
   let MIOperandInfo = (ops RexIntRegsOp:$rs);
   let ParserMatchClass = RexMEMREXrAsmOperand;
   let EncoderMethod = "getRexIntRegEncoding";
+  let DecoderMethod = "DecodeRexIntRegsRegisterClass";
 }
 
 class RegImmOperand : Operand<iPTR> {
   let PrintMethod   = "printMemOperand";
   let MIOperandInfo = (ops RexIntRegsOp:$rs, i32imm:$imm5);
   let EncoderMethod = "getADDRfiOpValue";
+  let DecoderMethod = "DecodeADDRfi";
 }
 
 def ADDRfi  : RegImmOperand { let ParserMatchClass =  RexMEMfiAsmOperand; }
 def ADDRffi : RegImmOperand { let ParserMatchClass =  RexMEMffiAsmOperand; }
 
-def Imm3Op   : Operand<iPTR> { let ParserMatchClass = Imm3AsmOperand;   }
-def Imm5Op   : Operand<iPTR> { let ParserMatchClass = Imm5AsmOperand;   }
-def SImm5Op  : Operand<iPTR> { let ParserMatchClass = SImm5AsmOperand;  }
-def NImm13Op : Operand<iPTR> { let ParserMatchClass = NImm13AsmOperand; }
-def SImm21Op : Operand<iPTR> { let ParserMatchClass = SImm21AsmOperand; }
+def Imm3Op   : Operand<iPTR> { let ParserMatchClass = Imm3AsmOperand; }
+def Imm5Op   : Operand<iPTR> { let ParserMatchClass = Imm5AsmOperand; }
+def SImm5Op  : Operand<iPTR> {
+  let ParserMatchClass = SImm5AsmOperand;
+  let DecoderMethod = "DecodeSIMM5";
+}
+def NImm13Op : Operand<iPTR> {
+  let ParserMatchClass = NImm13AsmOperand;
+  let DecoderMethod = "DecodeSIMM13";
+}
+def SImm21Op : Operand<iPTR> {
+  let ParserMatchClass = SImm21AsmOperand;
+  let DecoderMethod = "DecodeSIMM21";
+}
 def Imm32Op  : Operand<iPTR> { let EncoderMethod = "getImm32OpValue";   }
 
 // Instructions
@@ -229,6 +245,7 @@ def ADDREX :  EnterREX<"addrex",  0b000000>;
 // Section 6.3.1 - Branch on Integer Condition Codes - Short
 
 def brtarget8 : Operand<OtherVT> {
+  let DecoderMethod = "DecodeShortRexBranch";
   let EncoderMethod = "getRexShortBranchTargetOpValue";
   let ParserMatchClass = BrTarget8AsmOperand;
 }
@@ -518,6 +535,7 @@ def RNOP : InstRex16<(outs), (ins), "nop", []> {
 // Section 6.4.1 - Branch on integer condition codes - Long
 
 def brtarget24 : Operand<OtherVT> {
+  let DecoderMethod = "DecodeLongRexBranch";
   let EncoderMethod = "getRexLongBranchTargetOpValue";
   let ParserMatchClass = BrTarget24AsmOperand;
 }
