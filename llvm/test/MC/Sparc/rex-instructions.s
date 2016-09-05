@@ -440,7 +440,81 @@
 
 // Section 6.4.5 - Generic format 3 SPARC operation
 
+        !CHECK: add %sp, %i0, %o2 ! encoding: [0x88,0xe6,0x00,0x98]
+        add %sp, %i0, %o2
+
+        !CHECK: add %sp, -54, %o2 ! encoding: [0x88,0xe6,0x80,0xca]
+        add %sp, -54, %o2
+
+        !CHECK: ta 9              ! encoding: [0x80,0xe8,0xf4,0x89]
+        ta 9
+
 // Section 6.4.6 - Floating-point operations
+
+        !CHECK: fitos %f0, %f0       ! encoding: [0xa0,0xf8,0xc8,0x00]
+        fitos %f0, %f0
+        !CHECK: fitod %f0, %f0       ! encoding: [0xa0,0xf8,0xd0,0x00]
+        fitod %f0, %f0
+        !CHECK: fitoq %f0, %f0       ! encoding: [0xa0,0xf8,0xd8,0x00]
+        fitoq %f0, %f0
+        !CHECK: fstoi %f0, %f0       ! encoding: [0xa0,0xf8,0xa2,0x00]
+        fstoi %f0, %f0
+        !CHECK: fdtoi %f0, %f0       ! encoding: [0xa0,0xf8,0xa4,0x00]
+        fdtoi %f0, %f0
+        !CHECK: fqtoi %f0, %f0       ! encoding: [0xa0,0xf8,0xa6,0x00]
+        fqtoi %f0, %f0
+        !CHECK: fmovs %f0, %f0       ! encoding: [0xa0,0xf8,0x02,0x00]
+        fmovs %f0, %f0
+        !CHECK: fnegs %f0, %f0       ! encoding: [0xa0,0xf8,0x0a,0x00]
+        fnegs %f0, %f0
+        !CHECK: fabss %f0, %f0       ! encoding: [0xa0,0xf8,0x12,0x00]
+        fabss %f0, %f0
+        !CHECK: fsqrts %f0, %f0      ! encoding: [0xa0,0xf8,0x32,0x00]
+        fsqrts %f0, %f0
+        !CHECK: fsqrtd %f0, %f0      ! encoding: [0xa0,0xf8,0x34,0x00]
+        fsqrtd %f0, %f0
+        !CHECK: fsqrtq %f0, %f0      ! encoding: [0xa0,0xf8,0x36,0x00]
+        fsqrtq %f0, %f0
+        !CHECK: fadds %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x42,0x00]
+        fadds %f0, %f0, %f0
+        !CHECK: faddd %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x44,0x00]
+        faddd %f0, %f0, %f0
+        !CHECK: faddq %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x46,0x00]
+        faddq %f0, %f0, %f0
+        !CHECK: fsubs %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x4a,0x00]
+        fsubs %f0, %f0, %f0
+        !CHECK: fsubd %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x4c,0x00]
+        fsubd %f0, %f0, %f0
+        !CHECK: fsubq %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x4e,0x00]
+        fsubq %f0, %f0, %f0
+        !CHECK: fmuls %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x52,0x00]
+        fmuls %f0, %f0, %f0
+        !CHECK: fmuld %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x54,0x00]
+        fmuld %f0, %f0, %f0
+        !CHECK: fmulq %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x56,0x00]
+        fmulq %f0, %f0, %f0
+        !CHECK: fsmuld %f0, %f0, %f0 ! encoding: [0xa0,0xf8,0x72,0x00]
+        fsmuld %f0, %f0, %f0
+        !CHECK: fdmulq %f0, %f0, %f0 ! encoding: [0xa0,0xf8,0x7c,0x00]
+        fdmulq %f0, %f0, %f0
+        !CHECK: fdivs %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x5a,0x00]
+        fdivs %f0, %f0, %f0
+        !CHECK: fdivd %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x5c,0x00]
+        fdivd %f0, %f0, %f0
+        !CHECK: fdivq %f0, %f0, %f0  ! encoding: [0xa0,0xf8,0x5e,0x00]
+        fdivq %f0, %f0, %f0
+        !CHECK: fcmps	 %f0, %f0    ! encoding: [0xa0,0xf8,0x82,0x00]
+        fcmps	 %f0, %f0
+        !CHECK: fcmpd	 %f0, %f0    ! encoding: [0xa0,0xf8,0x84,0x00]
+        fcmpd	 %f0, %f0
+        !CHECK: fcmpq	 %f0, %f0    ! encoding: [0xa0,0xf8,0x86,0x00]
+        fcmpq	 %f0, %f0
+        !CHECK: fcmpes	 %f0, %f0    ! encoding: [0xa0,0xf8,0x8a,0x00]
+        fcmpes	 %f0, %f0
+        !CHECK: fcmped	 %f0, %f0    ! encoding: [0xa0,0xf8,0x8c,0x00]
+        fcmped	 %f0, %f0
+        !CHECK: fcmpeq	 %f0, %f0    ! encoding: [0xa0,0xf8,0x8e,0x00]
+        fcmpeq	 %f0, %f0
 
 // Section 6.5.1 - Set 32-bit constant
 

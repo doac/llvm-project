@@ -108,6 +108,10 @@ private:
   unsigned getRexFPRegEncoding(const MCInst &MI, unsigned OpNo,
                                SmallVectorImpl<MCFixup> &Fixups,
                                const MCSubtargetInfo &STI) const;
+  unsigned RexF3_12PostEncoder(const MCInst &MI, unsigned EncodedValue,
+                               const MCSubtargetInfo &STI) const;
+  unsigned RexF3_3PostEncoder(const MCInst &MI, unsigned EncodedValue,
+                              const MCSubtargetInfo &STI) const;
 };
 
 } // end anonymous namespace
@@ -361,6 +365,99 @@ static const unsigned RexIntRegsMapping[32] = {
 static const unsigned RexFloatRegsMapping[32] = {
     8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 4,  5,  6,  7,
     0, 1, 2,  3,  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
+
+static unsigned getField(unsigned insn, unsigned startBit, unsigned numBits) {
+  unsigned fieldMask = (((unsigned)1 << numBits) - 1) << startBit;
+  return (insn & fieldMask) >> startBit;
+}
+
+unsigned
+SparcMCCodeEmitter::RexF3_12PostEncoder(const MCInst &MI, unsigned EncodedValue,
+                                        const MCSubtargetInfo &STI) const {
+  if (!isREX(STI))
+    return EncodedValue;
+
+  if (MI.getOpcode() == SP::SAVEREX || MI.getOpcode() == SP::ADDREX)
+    return EncodedValue;
+
+  unsigned Rd = RexIntRegsMapping[getField(EncodedValue, 25, 5)];
+  unsigned Op3 = getField(EncodedValue, 19, 6);
+  unsigned Rs1 = RexIntRegsMapping[getField(EncodedValue, 14, 5)];
+  unsigned Imm = getField(EncodedValue, 13, 1);
+  unsigned Rs2OrImm =
+      Imm ? getField(EncodedValue, 0, 7) : getField(EncodedValue, 0, 5);
+
+  assert(!Imm || (isInt<7>(APInt(13, getField(EncodedValue, 0, 13)).getSExtValue())
+                  && "Immediate too large for REX"));
+
+  // {31-30}  -
+  // {29-26}  r4d
+  // {25}     0
+  // {24-21}  rop3
+  // {20}     0
+  // {19-16}  r4s1
+  // {15}     ximm
+  // {14-9}   xop3
+  // {8}      rdalt
+  // {7}      rs1alt
+  // {6-0}    rs2 / simm7
+  EncodedValue &= 0xC0000000;
+  EncodedValue |= (Rd & 0xf) << 26;
+  EncodedValue |= 7 << 21;
+  EncodedValue |= (Rs1 & 0xf) << 16;
+  EncodedValue |= Imm << 15;
+  EncodedValue |= Op3 << 9;
+  EncodedValue |= (Rd & 0x10) << 4;
+  EncodedValue |= (Rs1 & 0x10) << 3;
+  EncodedValue |= Rs2OrImm;
+
+  return EncodedValue;
+}
+
+unsigned
+SparcMCCodeEmitter::RexF3_3PostEncoder(const MCInst &MI, unsigned EncodedValue,
+                                       const MCSubtargetInfo &STI) const {
+
+  if (!isREX(STI))
+    return EncodedValue;
+
+  unsigned Rd = RexFloatRegsMapping[getField(EncodedValue, 25, 5)];
+  unsigned Op3 = getField(EncodedValue, 19, 6);
+  unsigned Rs1 = RexFloatRegsMapping[getField(EncodedValue, 14, 5)];
+  unsigned Fpop = getField(EncodedValue, 5, 9);
+  unsigned Rs2 = getField(EncodedValue, 0, 5);
+
+  unsigned Xfpop6 = getField(Op3, 0, 1) | getField(Fpop, 7, 1);
+  unsigned Xfpop5 = getField(Fpop, 6, 1) & ~getField(Fpop, 4, 1);
+  unsigned Xfpop4 =
+      ~getField(Op3, 0, 1) & (getField(Fpop, 5, 1) ^ getField(Fpop, 4, 1));
+
+  // {31-30}  10
+  // {29-26}  r4d
+  // {25}     0
+  // {24-21}  rop3
+  // {20}     1
+  // {19-16}  r4s1
+  // {15-9}   xfpop
+  // {8}      rdalt
+  // {7}      rs1alt
+  // {6-5}    0
+  // {4-0}    rs2
+  EncodedValue &= 0xC0000000;
+  EncodedValue |= (Rd & 0xf) << 26;
+  EncodedValue |= 7 << 21;
+  EncodedValue |= 1 << 20;
+  EncodedValue |= (Rs1 & 0xf) << 16;
+  EncodedValue |= Xfpop6 << 15;
+  EncodedValue |= Xfpop5 << 14;
+  EncodedValue |= Xfpop4 << 13;
+  EncodedValue |= (Fpop & 0xf) << 9;
+  EncodedValue |= (Rd & 0x10) << 4;
+  EncodedValue |= (Rs1 & 0x10) << 3;
+  EncodedValue |= Rs2;
+
+  return EncodedValue;
+}
 
 unsigned
 SparcMCCodeEmitter::getRexIntRegEncoding(const MCInst &MI, unsigned OpNo,

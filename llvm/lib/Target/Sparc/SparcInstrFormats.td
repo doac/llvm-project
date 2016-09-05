@@ -139,6 +139,7 @@ class F3_1<bits<2> opVal, bits<6> op3val, dag outs, dag ins, string asmstr,
        list<dag> pattern, InstrItinClass itin = IIC_iu_instr>
   : F3_1_asi<opVal, op3val, outs, ins, asmstr, pattern, itin> {
   let asi = 0;
+  let PostEncoderMethod = "RexF3_12PostEncoder";
 }
 
 class F3_2<bits<2> opVal, bits<6> op3val, dag outs, dag ins,
@@ -151,6 +152,7 @@ class F3_2<bits<2> opVal, bits<6> op3val, dag outs, dag ins,
 
   let Inst{13}   = 1;     // i field = 1
   let Inst{12-0} = simm13;
+  let PostEncoderMethod = "RexF3_12PostEncoder";
 }
 
 // floating-point
@@ -164,6 +166,7 @@ class F3_3<bits<2> opVal, bits<6> op3val, bits<9> opfval, dag outs, dag ins,
 
   let Inst{13-5} = opfval;   // fp opcode
   let Inst{4-0}  = rs2;
+  let PostEncoderMethod = "RexF3_3PostEncoder";
 }
 
 // floating-point unary operations.
@@ -178,6 +181,7 @@ class F3_3u<bits<2> opVal, bits<6> op3val, bits<9> opfval, dag outs, dag ins,
 
   let Inst{13-5} = opfval;   // fp opcode
   let Inst{4-0}  = rs2;
+  let PostEncoderMethod = "RexF3_3PostEncoder";
 }
 
 // floating-point compares.
@@ -191,6 +195,7 @@ class F3_3c<bits<2> opVal, bits<6> op3val, bits<9> opfval, dag outs, dag ins,
 
   let Inst{13-5} = opfval;   // fp opcode
   let Inst{4-0}  = rs2;
+  let PostEncoderMethod = "RexF3_3PostEncoder";
 }
 
 // Shift by register rs2.
@@ -337,7 +342,7 @@ class TRAPSP<bits<6> op3Val, bit isimm, dag outs, dag ins,
    let op3 = op3Val;
    let Inst{13} = isimm;
    let Inst{12-11} = cc;
-
+   let PostEncoderMethod = "RexF3_12PostEncoder";
 }
 
 class TRAPSPrr<bits<6> op3Val, dag outs, dag ins,

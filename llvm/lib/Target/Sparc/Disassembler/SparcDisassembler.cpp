@@ -409,6 +409,58 @@ static DecodeStatus readInstruction32(ArrayRef<uint8_t> Bytes, uint64_t Address,
   return MCDisassembler::Success;
 }
 
+static unsigned DecodeRexF3(unsigned insn) {
+
+  static const unsigned SparcRegsMapping[32] = {
+      8,  9,  10, 11, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+      16, 17, 18, 19, 12, 13, 14, 15, 0,  1,  2,  3,  4,  5,  6,  7};
+
+  unsigned rop = (insn >> 30);
+  unsigned r4d = (insn >> 26) & 15;
+  unsigned rop3l = (insn >> 20) & 1;
+  unsigned r4s = (insn >> 16) & 0xF;
+
+  int isfpop = rop3l;
+  int ximm = (insn >> 15) & 1;
+  int xop3 = (insn >> 9) & 0x3F;
+  int xfpop = (insn >> 9) & 0x7F;
+  int rdalt = (insn >> 8) & 1;
+  int rs1alt = (insn >> 7) & 1;
+
+  unsigned op32 = 0;
+
+  if (isfpop) {
+    unsigned opf = xfpop & 0x0f;
+    xop3 = 0x34;
+    if ((xfpop & 0x70) == 0x40)
+      xop3 |= 1;
+    if ((xfpop & 0x60) == 0x40)
+      opf |= 0x10;
+    if ((xfpop & 0x50) == 0x10)
+      opf |= 0x20;
+    if ((xfpop & 0x60) != 0)
+      opf |= 0x40;
+    if ((xfpop & 0x70) == 0x50 || (xfpop & 0x70) == 0x60)
+      opf |= 0x80;
+    op32 |= opf << 5;
+    op32 |= insn & 0x1f;
+    ximm = 0;
+  }
+
+  op32 |= rop << 30;
+  op32 |= SparcRegsMapping[r4d + 16 * (rdalt ^ isfpop)] << 25;
+  op32 |= xop3 << 19;
+  op32 |= SparcRegsMapping[r4s + 16 * (rs1alt ^ isfpop)] << 14;
+  op32 |= ximm << 13;
+  if (!isfpop)
+    op32 |= insn & 0x7F;
+
+  if (ximm != 0 && (insn & 0x40) != 0)
+    op32 |= 0x1F80;
+
+  return op32;
+}
+
 DecodeStatus SparcDisassembler::getInstructionREX(MCInst &Instr, uint64_t &Size,
                                                   ArrayRef<uint8_t> Bytes,
                                                   uint64_t Address,
@@ -451,8 +503,12 @@ DecodeStatus SparcDisassembler::getInstructionREX(MCInst &Instr, uint64_t &Size,
         (Bytes[3] << 0) | (Bytes[2] << 8) | (Bytes[1] << 16) | (Bytes[0] << 24);
 
     bool isCall = (Insn >> 30) == 1;
+    bool isRexEncoded = (Insn >> 31) && !(Insn & (1 << 25));
 
-    if (isCall) {
+    if (isCall || isRexEncoded) {
+      if (isRexEncoded) {
+        Insn = DecodeRexF3(Insn);
+      }
       Result = decodeInstruction(DecoderTableSparc32, Instr, Insn, Address,
                                  this, STI);
     } else {
