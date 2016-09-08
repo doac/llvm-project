@@ -119,6 +119,7 @@ static unsigned getFixupKindNumBytes(unsigned Kind) {
   case FK_Data_1:
     return 1;
   case FK_Data_2:
+  case Sparc::fixup_sparc_br8:
     return 2;
   case FK_Data_8:
     return 8;
@@ -282,7 +283,9 @@ namespace {
 
     bool mayNeedRelaxation(const MCInst &Inst,
                            const MCSubtargetInfo &STI) const override {
-      // FIXME.
+      if (Inst.getOpcode() == SP::RBCOND || Inst.getOpcode() == SP::RBA ||
+          Inst.getOpcode() == SP::RFBCOND)
+        return true;
       return false;
     }
 
@@ -292,14 +295,32 @@ namespace {
                               uint64_t Value,
                               const MCRelaxableFragment *DF,
                               const MCAsmLayout &Layout) const override {
-      // FIXME.
-      llvm_unreachable("fixupNeedsRelaxation() unimplemented");
-      return false;
+
+      assert(Fixup.getKind() == (MCFixupKind)Sparc::fixup_sparc_br8);
+      assert((Value & 1) == 0);
+
+      if (isInt<9>(Value))
+        return false;
+      return true;
     }
+
     void relaxInstruction(const MCInst &Inst, const MCSubtargetInfo &STI,
                           MCInst &Res) const override {
-      // FIXME.
-      llvm_unreachable("relaxInstruction() unimplemented");
+      Res = Inst;
+
+      switch (Inst.getOpcode()) {
+      case SP::RBCOND:
+        Res.setOpcode(SP::RLBCOND);
+        break;
+      case SP::RBA:
+        Res.setOpcode(SP::RBAL);
+        break;
+      case SP::RFBCOND:
+        Res.setOpcode(SP::RFLBCOND);
+        break;
+      default:
+        llvm_unreachable("Cannot relax unknown instruction!");
+      }
     }
 
     bool writeNopData(raw_ostream &OS, uint64_t Count) const override {

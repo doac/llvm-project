@@ -547,3 +547,4 @@
         ! CHECK: rld32pc [foo], %l4  ! encoding: [0x93,0xeb,A,A,A,A]
                    !   fixup A - offset: 2, value: foo, kind: fixup_sparc_disp32
         rld32pc [foo], %l4
+

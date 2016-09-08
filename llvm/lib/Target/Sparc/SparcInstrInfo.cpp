@@ -141,10 +141,13 @@ static SPCC::CondCodes GetOppositeBranchCondition(SPCC::CondCodes CC)
   llvm_unreachable("Invalid cond code");
 }
 
-static bool isUncondBranchOpcode(int Opc) { return Opc == SP::BA; }
+static bool isUncondBranchOpcode(int Opc) {
+  return Opc == SP::BA || Opc == SP::RBA;
+}
 
 static bool isCondBranchOpcode(int Opc) {
-  return Opc == SP::FBCOND || Opc == SP::BCOND;
+  return Opc == SP::FBCOND || Opc == SP::BCOND || Opc == SP::RBCOND ||
+         Opc == SP::RFBCOND;
 }
 
 static bool isIndirectBranchOpcode(int Opc) {
@@ -251,9 +254,13 @@ unsigned SparcInstrInfo::insertBranch(MachineBasicBlock &MBB,
          "Sparc branch conditions should have one component!");
   assert(!BytesAdded && "code size not handled");
 
+  unsigned UncondBranchOpcode = Subtarget.isREX() ? SP::RBA : SP::BA;
+  unsigned CondBranchOpcode = Subtarget.isREX() ? SP::RBCOND : SP::BCOND;
+  unsigned CondFBranchOpcode = Subtarget.isREX() ? SP::RFBCOND : SP::FBCOND;
+
   if (Cond.empty()) {
     assert(!FBB && "Unconditional branch with multiple successors!");
-    BuildMI(&MBB, DL, get(SP::BA)).addMBB(TBB);
+    BuildMI(&MBB, DL, get(UncondBranchOpcode)).addMBB(TBB);
     return 1;
   }
 
@@ -261,13 +268,13 @@ unsigned SparcInstrInfo::insertBranch(MachineBasicBlock &MBB,
   unsigned CC = Cond[0].getImm();
 
   if (IsIntegerCC(CC))
-    BuildMI(&MBB, DL, get(SP::BCOND)).addMBB(TBB).addImm(CC);
+    BuildMI(&MBB, DL, get(CondBranchOpcode)).addMBB(TBB).addImm(CC);
   else
-    BuildMI(&MBB, DL, get(SP::FBCOND)).addMBB(TBB).addImm(CC);
+    BuildMI(&MBB, DL, get(CondFBranchOpcode)).addMBB(TBB).addImm(CC);
   if (!FBB)
     return 1;
 
-  BuildMI(&MBB, DL, get(SP::BA)).addMBB(FBB);
+  BuildMI(&MBB, DL, get(UncondBranchOpcode)).addMBB(FBB);
   return 2;
 }
 
@@ -283,9 +290,9 @@ unsigned SparcInstrInfo::removeBranch(MachineBasicBlock &MBB,
     if (I->isDebugInstr())
       continue;
 
-    if (I->getOpcode() != SP::BA
-        && I->getOpcode() != SP::BCOND
-        && I->getOpcode() != SP::FBCOND)
+    if (I->getOpcode() != SP::BA && I->getOpcode() != SP::BCOND &&
+        I->getOpcode() != SP::FBCOND && I->getOpcode() != SP::RBA &&
+        I->getOpcode() != SP::RBCOND && I->getOpcode() != SP::RFBCOND)
       break; // Not a branch
 
     I->eraseFromParent();

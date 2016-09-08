@@ -290,19 +290,19 @@ class RexBranch<bit isFloat, dag ins, string asmstr, list<dag> pattern>
 let cond = 8, isBarrier = 1 in
 def RBA : RexBranch<0, (ins brtarget8:$disp8),
                     "rba\t$disp8",
-                    []>;
+                    [(br bb:$disp8)]>;
 
 let Uses = [ICC] in
 def RBCOND : RexBranch<0, (ins brtarget8:$disp8, CCOp:$cond),
                        "rb$cond\t$disp8",
-                       []>;
+                       [(SPbricc bb:$disp8, imm:$cond)]>;
 
 // Section 6.3.2 - Branch on Floating-Point Condition Codes - Short
 
 let Uses = [FCC0] in
 def RFBCOND : RexBranch<1, (ins brtarget8:$disp8, CCOp:$cond),
                         "rfb$cond\t$disp8",
-                        []>;
+                        [(SPbrfcc bb:$disp8, imm:$cond)]>;
 
 // Section 6.3.3 - Arithmetic operations - Accumulator with register
 
@@ -375,7 +375,7 @@ let Defs = [ICC], isCompare = 1 in
 def RCMPrr : RexFR<0b10, 0b1011, 0b1,
                    (outs), (ins RexIntRegsOp:$rs, RexIntRegsOp:$rd),
                    "rcmp\t$rd, $rs",
-                   []>;
+                   [(SPcmpicc i32:$rd, i32:$rs)]>;
 
 // Section 6.3.6 - Comparison with immediate
 
@@ -383,7 +383,7 @@ let Defs = [ICC], isCompare = 1 in
 def RCMPri : RexFI<0b10, 0b1, 0b1000,
                    (outs), (ins RexIntRegsOp:$rd, SImm5Op:$imm5),
                    "rcmp\t$rd, $imm5",
-                   []>;
+                   [(SPcmpicc i32:$rd, (i32 simm5:$imm5))]>;
 
 // Section 6.3.7 - Constant assignment
 
