@@ -448,8 +448,8 @@ class RexNeg<string OpcStr, bits<5> rop4val, list<dag> pattern>
             !strconcat(OpcStr, "\t$rd"),
             pattern>;
 
-def RNEG : RexNeg<"rneg", 0b00100, []>;
-def RNOT : RexNeg<"rnot", 0b00101, []>;
+def RNEG : RexNeg<"rneg", 0b00100, [(set i32:$rd, (sub (i32 0), i32:$rs))]>;
+def RNOT : RexNeg<"rnot", 0b00101, [(set i32:$rd, (not i32:$rs))]>;
 
 // Section 6.3.11 - Return instructions
 
