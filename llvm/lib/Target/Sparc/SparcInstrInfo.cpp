@@ -319,10 +319,15 @@ void SparcInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                           SP::sub_odd64_then_sub_even,
                                           SP::sub_odd64_then_sub_odd };
 
-  if (SP::IntRegsRegClass.contains(DestReg, SrcReg))
-    BuildMI(MBB, I, DL, get(SP::ORrr), DestReg).addReg(SP::G0)
-      .addReg(SrcReg, getKillRegState(KillSrc));
-  else if (SP::IntPairRegClass.contains(DestReg, SrcReg)) {
+  if (SP::IntRegsRegClass.contains(DestReg, SrcReg)) {
+    if (Subtarget.isREX())
+      BuildMI(MBB, I, DL, get(SP::RMOV), DestReg)
+          .addReg(SrcReg, getKillRegState(KillSrc));
+    else
+      BuildMI(MBB, I, DL, get(SP::ORrr), DestReg)
+          .addReg(SP::G0)
+          .addReg(SrcReg, getKillRegState(KillSrc));
+  } else if (SP::IntPairRegClass.contains(DestReg, SrcReg)) {
     subRegIdx  = DW_SubRegsIdx;
     numSubRegs = 2;
     movOpc     = SP::ORrr;
