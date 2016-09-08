@@ -122,6 +122,18 @@ class RexFF<bits<1> isStore, bits<1> isFloat,
   let Inst{4-0} = addr{4-0};
 }
 
+// Transforms
+
+def Log2 : SDNodeXForm<imm, [{
+ return CurDAG->getTargetConstant(Log2_32((unsigned)N->getZExtValue()),
+        SDLoc(N), MVT::i32);
+}]>;
+
+def NLog2 : SDNodeXForm<imm, [{
+ return CurDAG->getTargetConstant(Log2_32(~(unsigned)N->getZExtValue()),
+        SDLoc(N), MVT::i32);
+}]>;
+
 // Asm operands
 
 class ImmAsmOperandClass : AsmOperandClass {
@@ -230,6 +242,9 @@ def Imm32Op  : Operand<iPTR> { let EncoderMethod = "getImm32OpValue";   }
 
 def imm5   : ImmLeaf<i32, [{ return isUInt<5>(Imm);      }]>;
 def simm5  : ImmLeaf<i32, [{ return isInt<5>(Imm);       }]>;
+def pow2   : ImmLeaf<i32, [{ return isPowerOf2_32(Imm);  }], Log2>;
+def npow2  : ImmLeaf<i32, [{ return isPowerOf2_32(~Imm); }], NLog2>;
+def masklo : ImmLeaf<i32, [{ return isMask_32(Imm);      }], Log2>;
 
 // Instructions
 
@@ -392,13 +407,13 @@ class RexBitmask<string OpcStr, bits<4> op3val, list<dag> pattern>
             !strconcat(OpcStr, "\t$imm5, $rd"), pattern>;
 
 def RSETBIT  : RexBitmask<"rsetbit", 0b0100,
-                          []>;
+                          [(set i32:$rd, (or i32:$rs, pow2:$imm5))]>;
 def RCLRBIT  : RexBitmask<"rclrbit", 0b1010,
-                          []>;
+                          [(set i32:$rd, (and i32:$rs, npow2:$imm5))]>;
 def RINVBIT  : RexBitmask<"rinvbit", 0b0110,
-                          []>;
+                          [(set i32:$rd, (xor i32:$rs, pow2:$imm5))]>;
 def RMASKLO  : RexBitmask<"rmasklo", 0b0010,
-                          []>;
+                          [(set i32:$rd, (and i32:$rs, masklo:$imm5))]>;
 
 let Defs = [ICC] in
 def RTSTBIT : RexFI<0b10, 0b1, 0b0011, (outs), (ins Imm5Op:$imm5,
