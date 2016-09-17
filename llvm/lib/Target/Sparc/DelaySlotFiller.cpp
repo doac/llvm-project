@@ -135,8 +135,17 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB,
     MachineBasicBlock::iterator MI = I;
     ++I;
 
-    if (Subtarget->isREX())
+    if (Subtarget->isREX()) {
+      unsigned structSize = 0;
+      if (needsUnimp(MI, structSize)) {
+        DebugLoc DL = MI->getDebugLoc();
+        MachineBasicBlock::iterator J = MI;
+        BuildMI(MBB, ++J, DL, TII->get(SP::UNIMP)).addImm(structSize);
+
+        Changed = true;
+      }
       continue;
+    }
 
     // If MI is restore, try combining it with previous inst.
     if (!DisableDelaySlotFiller &&

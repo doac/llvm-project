@@ -319,6 +319,20 @@ void SparcFrameLowering::emitEpilogue(MachineFunction &MF,
 
   if ((Subtarget.isREX())) {
 
+    if (MBBI->getOperand(0).getImm() == 12) {
+      if (FuncInfo->isLeafProc()) {
+        MBB.addLiveIn(SP::O7);
+        BuildMI(MBB, MBBI, dl, TII.get(SP::ADDri), SP::O7)
+            .addReg(SP::O7)
+            .addImm(4);
+      } else {
+        MBB.addLiveIn(SP::I7);
+        BuildMI(MBB, MBBI, dl, TII.get(SP::RADDCCi), SP::I7)
+            .addReg(SP::I7)
+            .addImm(4);
+      }
+    }
+
     if (!FuncInfo->isLeafProc())
       return;
 
