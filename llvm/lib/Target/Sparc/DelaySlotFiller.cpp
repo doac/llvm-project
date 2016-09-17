@@ -135,6 +135,9 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB,
     MachineBasicBlock::iterator MI = I;
     ++I;
 
+    if (Subtarget->isREX())
+      continue;
+
     // If MI is restore, try combining it with previous inst.
     if (!DisableDelaySlotFiller &&
         (MI->getOpcode() == SP::RESTORErr
