@@ -690,5 +690,49 @@ bool SparcInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     return true;
   }
   }
-  return false;
+
+  if (!Subtarget.isREX())
+    return false;
+
+  unsigned Reg;
+  int32_t Imm;
+
+  switch (MI.getOpcode()) {
+  default:
+    return false;
+  case SP::RLDri:
+    Reg = MI.getOperand(1).getReg();
+    Imm = MI.getOperand(2).getImm();
+    if ((Imm & ~0x7c) == 0 && (Reg == SP::O0 || Reg == SP::I0))
+      MI.setDesc(get(SP::RLDfi));
+    else
+      MI.setDesc(get(SP::LDri));
+    break;
+  case SP::RSTri:
+    Reg = MI.getOperand(0).getReg();
+    Imm = MI.getOperand(1).getImm();
+    if ((Imm & ~0x7c) == 0 && (Reg == SP::O0 || Reg == SP::I0))
+      MI.setDesc(get(SP::RSTfi));
+    else
+      MI.setDesc(get(SP::STri));
+    break;
+  case SP::RLDFri:
+    Reg = MI.getOperand(1).getReg();
+    Imm = MI.getOperand(2).getImm();
+    if ((Imm & ~0x7c) == 0 && (Reg == SP::I0))
+      MI.setDesc(get(SP::RLDFfi));
+    else
+      MI.setDesc(get(SP::LDFri));
+    break;
+  case SP::RSTFri:
+    Reg = MI.getOperand(0).getReg();
+    Imm = MI.getOperand(1).getImm();
+    if ((Imm & ~0x7c) == 0 && (Reg == SP::I0))
+      MI.setDesc(get(SP::RSTFfi));
+    else
+      MI.setDesc(get(SP::STFri));
+    break;
+  }
+
+  return true;
 }

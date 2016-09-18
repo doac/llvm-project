@@ -534,6 +534,17 @@ def RLDfi  : RexLoadFI<"rld\t[$addr], $rd",  0, ADDRfi, RexIntRegsOp>;
 def RLDFfi : RexLoadFI<"rldf\t[$addr], $rd", 1, ADDRffi, RexFPRegsOp>;
 }
 
+let isCodeGenOnly = 1, isPseudo = 1, AddedComplexity = 10 in {
+  def RSTri  : InstRex<(outs), (ins MEMri:$addr, RexIntRegsOp:$rd), "",
+                       [(store i32:$rd, ADDRri:$addr)]>;
+  def RLDri  : InstRex<(outs RexIntRegsOp:$rd), (ins MEMri:$addr),  "",
+                       [(set i32:$rd, (load ADDRri:$addr))]>;
+  def RSTFri : InstRex<(outs), (ins MEMri:$addr, RexFPRegsOp:$rd),  "",
+                       [(store f32:$rd, ADDRri:$addr)]>;
+  def RLDFri : InstRex<(outs RexFPRegsOp:$rd), (ins MEMri:$addr),   "",
+                       [(set f32:$rd, (load ADDRri:$addr))]>;
+}
+
 // Section 6.3.15 - Miscellaneous operations
 
 class RexMisc<string OpStr, bits<5> rop4val, dag outs, dag ins> :
