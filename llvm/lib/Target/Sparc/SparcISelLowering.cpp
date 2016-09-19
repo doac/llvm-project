@@ -1906,6 +1906,7 @@ const char *SparcTargetLowering::getTargetNodeName(unsigned Opcode) const {
   case SPISD::TLS_LD:          return "SPISD::TLS_LD";
   case SPISD::TLS_CALL:        return "SPISD::TLS_CALL";
   case SPISD::TAIL_CALL:       return "SPISD::TAIL_CALL";
+  case SPISD::CONST32:         return "SPISD::CONST32";
   }
   return nullptr;
 }
@@ -2042,6 +2043,9 @@ SDValue SparcTargetLowering::makeAddress(SDValue Op, SelectionDAG &DAG) const {
     llvm_unreachable("Unsupported absolute code model");
   case CodeModel::Small:
     // abs32.
+    if (Subtarget->isREX())
+      return DAG.getNode(SPISD::CONST32, DL, VT,
+                         withTargetFlags(Op, SparcMCExpr::VK_Sparc_32, DAG));
     return makeHiLoPair(Op, SparcMCExpr::VK_Sparc_HI,
                         SparcMCExpr::VK_Sparc_LO, DAG);
   case CodeModel::Medium: {

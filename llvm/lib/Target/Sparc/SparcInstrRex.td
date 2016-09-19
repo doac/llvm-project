@@ -122,6 +122,10 @@ class RexFF<bits<1> isStore, bits<1> isFloat,
   let Inst{4-0} = addr{4-0};
 }
 
+// Nodes
+
+def SPCONST32 : SDNode<"SPISD::CONST32", SDTIntUnaryOp>;
+
 // Transforms
 
 def Log2 : SDNodeXForm<imm, [{
@@ -678,6 +682,11 @@ def : Pat<(build_vector (i32 RexIntRegs:$a1), (i32 RexIntRegs:$a2)),
          (INSERT_SUBREG
          (INSERT_SUBREG (v2i32 (IMPLICIT_DEF)), (i32 RexIntRegs:$a1), sub_even),
          (i32 RexIntRegs:$a2), sub_odd)>;
+
+def : Pat<(SPCONST32 tglobaladdr:$in),   (RSET32 tglobaladdr:$in)>;
+def : Pat<(SPCONST32 tblockaddress:$in), (RSET32 tblockaddress:$in)>;
+def : Pat<(SPCONST32 tconstpool:$in),    (RSET32 tconstpool:$in)>;
+def : Pat<(SPCONST32 tglobaltlsaddr:$in),(RSET32 tglobaltlsaddr:$in)>;
 
 }
 

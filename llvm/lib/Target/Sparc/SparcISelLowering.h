@@ -49,7 +49,9 @@ namespace llvm {
 
       TLS_ADD,     // For Thread Local Storage (TLS).
       TLS_LD,
-      TLS_CALL
+      TLS_CALL,
+
+      CONST32      // Constant 32-bit value used by REX instructions
     };
   }
 
