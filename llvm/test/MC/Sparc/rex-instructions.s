@@ -433,6 +433,12 @@
    ! CHECK-NEXT: ! fixup A - offset: 0, value: (foo)+2, kind: fixup_sparc_call30
         call foo
 
+        ! CHECK: call %i0 ! encoding: [0x9c,0xe8,0x71,0x00]
+        call %i0
+
+        ! CHECK: rjmp %i0 ! encoding: [0x80,0xe8,0xf0,0x01]
+        rjmp %i0
+
 // Section 6.4.4 - Constant assignment
 
         ! CHECK: rset21 50000, %l4  ! encoding: [0x92,0xf0,0x06,0x1a]

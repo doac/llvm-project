@@ -618,7 +618,10 @@ let isTerminator = 1, isBarrier = 1, isBranch = 1, isIndirectBranch = 1,
 def BINDr : F3_2<2, 0b111000,
                  (outs), (ins IntRegs:$rs1),
                  "rjmp\t$rs1",
-                 []>;
+                 [(brind IntRegs:$rs1)]>;
+
+
+def : InstAlias<"rjmp $rs1", (BINDr IntRegs:$rs1), 1>;
 
 // Section 6.4.4 - Constant assignment
 
