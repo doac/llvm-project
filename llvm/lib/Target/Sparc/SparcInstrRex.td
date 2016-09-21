@@ -656,7 +656,7 @@ def RSET32PC : InstRex48<"rset32pc $imm32, $rd",  0b01001,
 
 def RLD32    : InstRex48<"rld32\t[$imm32], $rd",   0b01010,
                          Imm32Op, RexIntRegsOp,
-                         []>;
+                         [(set i32:$rd, (load imm32:$imm32))]>;
 def RLD32PC  : InstRex48<"rld32pc\t[$imm32], $rd", 0b01011,
                          Imm32Op,RexIntRegsOp,
                          []>;
@@ -690,6 +690,13 @@ def : Pat<(SPCONST32 tglobaladdr:$in),   (RSET32 tglobaladdr:$in)>;
 def : Pat<(SPCONST32 tblockaddress:$in), (RSET32 tblockaddress:$in)>;
 def : Pat<(SPCONST32 tconstpool:$in),    (RSET32 tconstpool:$in)>;
 def : Pat<(SPCONST32 tglobaltlsaddr:$in),(RSET32 tglobaltlsaddr:$in)>;
+
+let AddedComplexity  = 65 in {
+  def : Pat<(load (SPCONST32 tglobaladdr:$in)),   (RLD32 tglobaladdr:$in)>;
+  def : Pat<(load (SPCONST32 tblockaddress:$in)), (RLD32 tblockaddress:$in)>;
+  def : Pat<(load (SPCONST32 tconstpool:$in)),    (RLD32 tconstpool:$in)>;
+  def : Pat<(load (SPCONST32 tglobaltlsaddr:$in)),(RLD32 tglobaltlsaddr:$in)>;
+}
 
 def : Pat<(post_store (i32 RexIntRegs:$rd),      RexIntRegs:$rs, 4),
           (RSTinc $rs, $rd )>;
