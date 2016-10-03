@@ -205,8 +205,8 @@ def RexDFPRegsOp : Operand<f64> {
   let ParserMatchClass = RexDFPRegAsmOperand;
 }
 
-def ADDRr : Operand<iPTR> {
-  let MIOperandInfo = (ops RexIntRegsOp:$rs);
+def ADDRr : Operand<iPTR>, ComplexPattern<iPTR, 1, "SelectADDRr", []> {
+  let MIOperandInfo = (ops RexIntRegs);
   let ParserMatchClass = RexMEMREXrAsmOperand;
   let EncoderMethod = "getRexIntRegEncoding";
   let DecoderMethod = "DecodeRexIntRegsRegisterClass";
@@ -476,7 +476,7 @@ multiclass RexStore<string OpcStr, bits<4> rop3val, SDPatternOperator OpNode,
 def r:     RexFR<0b11, rop3val, 0,
                  (outs), (ins ADDRr:$rs, RegOp:$rd),
                  !strconcat(OpcStr, "\t$rd, [$rs]"),
-                 []>;
+                 [(OpNode Ty:$rd, ADDRr:$rs)]>;
 
 let Constraints = "$rs = $rd2" in
 def inc : RexFR<0b11, rop3val, 1,
@@ -498,7 +498,7 @@ multiclass RexLoad<string OpcStr, bits<4> rop3val, SDPatternOperator OpNode,
 def r:      RexFR<0b11, rop3val, 0,
                   (outs RegOp:$rd), (ins ADDRr:$rs),
                   !strconcat(OpcStr, "\t[$rs], $rd"),
-                  []>;
+                  [(set Ty:$rd, (OpNode ADDRr:$rs))]>;
 
 let Constraints = "$rs = $rd2" in
 def inc :  RexFR<0b11, rop3val, 1,
@@ -650,6 +650,23 @@ let Predicates = [IsREX], AddedComplexity = 60 in {
 def : Pat<(add i32:$rs, simm5:$imm5), (RADDCCi i32:$rs, simm5:$imm5)>;
 
 def : Pat<(retflag  imm5:$imm), (RRETREST imm5:$imm)>;
+
+def : Pat<(i32 (zextloadi1 RexIntRegs:$src)), (RLDUBr RexIntRegs:$src)>;
+def : Pat<(i32 (extloadi1 RexIntRegs:$src)),  (RLDUBr RexIntRegs:$src)>;
+def : Pat<(i32 (extloadi8 RexIntRegs:$rs)),   (RLDUBr RexIntRegs:$rs)>;
+def : Pat<(i32 (extloadi16 RexIntRegs:$rs)),  (RLDUHr RexIntRegs:$rs)>;
+
+// extract_vector
+def : Pat<(extractelt (v2i32 RexIntPair:$Rn), 0),
+          (i32 (EXTRACT_SUBREG RexIntPair:$Rn, sub_even))>;
+def : Pat<(extractelt (v2i32 RexIntPair:$Rn), 1),
+          (i32 (EXTRACT_SUBREG RexIntPair:$Rn, sub_odd))>;
+
+// build_vector
+def : Pat<(build_vector (i32 RexIntRegs:$a1), (i32 RexIntRegs:$a2)),
+         (INSERT_SUBREG
+         (INSERT_SUBREG (v2i32 (IMPLICIT_DEF)), (i32 RexIntRegs:$a1), sub_even),
+         (i32 RexIntRegs:$a2), sub_odd)>;
 
 }
 

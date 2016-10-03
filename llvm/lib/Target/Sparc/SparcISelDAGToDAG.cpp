@@ -46,6 +46,7 @@ public:
   // Complex Pattern Selectors.
   bool SelectADDRrr(SDValue N, SDValue &R1, SDValue &R2);
   bool SelectADDRri(SDValue N, SDValue &Base, SDValue &Offset);
+  bool SelectADDRr(SDValue Addr, SDValue &Base);
 
   /// SelectInlineAsmMemoryOperand - Implement addressing mode selection for
   /// inline asm expressions.
@@ -73,6 +74,24 @@ SDNode* SparcDAGToDAGISel::getGlobalBaseReg() {
       .getNode();
 }
 
+bool SparcDAGToDAGISel::SelectADDRr(SDValue Addr, SDValue &Base) {
+  if (isa<FrameIndexSDNode>(Addr))
+    return false;
+
+  // Check if ISD::ADD or equivalent ISD::OR
+  if (CurDAG->isBaseWithConstantOffset(Addr)) {
+    if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1)))
+      if (!isInt<7>(CN->getSExtValue())) {
+        Base = Addr;
+        return true;
+      }
+    return false;
+  }
+
+  Base = Addr;
+  return true;
+}
+
 bool SparcDAGToDAGISel::SelectADDRri(SDValue Addr,
                                      SDValue &Base, SDValue &Offset) {
   if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
@@ -88,7 +107,8 @@ bool SparcDAGToDAGISel::SelectADDRri(SDValue Addr,
 
   if (Addr.getOpcode() == ISD::ADD) {
     if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1))) {
-      if (isInt<13>(CN->getSExtValue())) {
+      if ((!Subtarget->isREX() && isInt<13>(CN->getSExtValue())) ||
+          isInt<7>(CN->getSExtValue())) {
         if (FrameIndexSDNode *FIN =
                 dyn_cast<FrameIndexSDNode>(Addr.getOperand(0))) {
           // Constant offset from frame ref.
@@ -113,6 +133,7 @@ bool SparcDAGToDAGISel::SelectADDRri(SDValue Addr,
       return true;
     }
   }
+
   Base = Addr;
   Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), MVT::i32);
   return true;
