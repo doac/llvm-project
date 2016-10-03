@@ -25,6 +25,8 @@ class InstRex<dag outs, dag ins, string asmstr, list<dag> pattern>
   let AsmString       = asmstr;
   let Pattern         = pattern;
 
+  let AddedComplexity = 60;
+
   let DecoderNamespace = "SparcRex";
   field bits<48> SoftFail = 0;
 }
@@ -224,6 +226,11 @@ def SImm21Op : Operand<iPTR> {
 }
 def Imm32Op  : Operand<iPTR> { let EncoderMethod = "getImm32OpValue";   }
 
+// Leaf patterns
+
+def imm5   : ImmLeaf<i32, [{ return isUInt<5>(Imm);      }]>;
+def simm5  : ImmLeaf<i32, [{ return isInt<5>(Imm);       }]>;
+
 // Instructions
 
 // Section 6.2.1 - SAVEREX and ADDREX
@@ -291,37 +298,37 @@ class RexArith<string OpcStr, bits<4> rop3, bits<1> rop3l, list<dag> pattern>
 
 let isCommutable = 1 in {
   def RADD  : RexArith<"radd",  0b0000, 0b0,
-                       []>;
+                       [(set i32:$rd, (add i32:$rsc, i32:$rs))]>;
   def RAND  : RexArith<"rand",  0b0010, 0b0,
-                       []>;
+                       [(set i32:$rd, (and i32:$rsc, i32:$rs))]>;
   def ROR   : RexArith<"ror",   0b0100, 0b0,
-                       []>;
+                       [(set i32:$rd, (or  i32:$rsc, i32:$rs))]>;
   def RXOR  : RexArith<"rxor",  0b0110, 0b0,
-                       []>;
+                       [(set i32:$rd, (xor i32:$rsc, i32:$rs))]>;
 }
 
 def RSUB  : RexArith<"rsub",  0b0001, 0b0,
-                     []>;
+                     [(set i32:$rd, (sub i32:$rsc, i32:$rs))]>;
 def RANDN : RexArith<"randn", 0b1010, 0b0,
-                     []>;
+                     [(set i32:$rd, (and i32:$rsc, (not i32:$rs)))]>;
 def RORN  : RexArith<"rorn",  0b1100, 0b0,
-                     []>;
+                     [(set i32:$rd, (or  i32:$rsc, (not i32:$rs)))]>;
 def RSLL  : RexArith<"rsll",  0b1011, 0b0,
-                     []>;
+                     [(set i32:$rd, (shl i32:$rsc, i32:$rs))]>;
 def RSRL  : RexArith<"rsrl",  0b1101, 0b0,
-                     []>;
+                     [(set i32:$rd, (srl i32:$rsc, i32:$rs))]>;
 
 let Defs = [ICC] in {
   let isCommutable = 1 in {
     def RADDCC  : RexArith<"raddcc",  0b0000, 0b1,
-                           []>;
+                           [(set i32:$rd, (addc i32:$rsc, i32:$rs))]>;
     def RANDCC  : RexArith<"randcc",  0b0010, 0b1, []>;
     def RORCC   : RexArith<"rorcc",   0b0100, 0b1, []>;
     def RXORCC  : RexArith<"rxorcc",  0b0110, 0b1, []>;
   }
 
   def RSUBCC  : RexArith<"rsubcc",  0b0001, 0b1,
-                         []>;
+                         [(set i32:$rd, (subc i32:$rsc, i32:$rs))]>;
   def RANDNCC : RexArith<"randncc", 0b1010, 0b1, []>;
   def RORNCC  : RexArith<"rorncc",  0b1100, 0b1, []>;
 }
@@ -339,11 +346,11 @@ class RexArithImm<string OpcStr, bits<4> rop3, Operand immop,
 
 let Defs = [ICC] in
 def RADDCCi : RexArithImm<"raddcc", 0b0000, SImm5Op,
-                          []>;
+                          [(set i32:$rd, (addc i32:$rs, simm5:$imm5))]>;
 def RSLLi   : RexArithImm<"rsll",   0b1011, Imm5Op,
-                          []>;
+                          [(set i32:$rd, (shl i32:$rs,  imm5:$imm5))]>;
 def RSRLi   : RexArithImm<"rsrl",   0b1101, Imm5Op,
-                          []>;
+                          [(set i32:$rd, (srl i32:$rs,  imm5:$imm5))]>;
 
 // Section 6.3.5 - Comparison with register
 
@@ -618,3 +625,11 @@ def RLD32    : InstRex48<"rld32\t[$imm32], $rd",   0b01010,
 def RLD32PC  : InstRex48<"rld32pc\t[$imm32], $rd", 0b01011,
                          Imm32Op,RexIntRegsOp,
                          []>;
+
+// Patterns
+
+let Predicates = [IsREX], AddedComplexity = 60 in {
+
+def : Pat<(add i32:$rs, simm5:$imm5), (RADDCCi i32:$rs, simm5:$imm5)>;
+
+}
