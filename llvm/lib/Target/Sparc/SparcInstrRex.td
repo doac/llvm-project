@@ -650,3 +650,7 @@ let Predicates = [IsREX], AddedComplexity = 60 in {
 def : Pat<(add i32:$rs, simm5:$imm5), (RADDCCi i32:$rs, simm5:$imm5)>;
 
 }
+
+// Alias
+
+def : InstAlias<"enterrex", (ADDREX G0, G0, -1), 1>;

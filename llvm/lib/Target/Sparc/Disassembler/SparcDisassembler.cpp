@@ -752,7 +752,7 @@ static DecodeStatus DecodeSIMM21(MCInst &MI, unsigned insn, uint64_t Address,
 
 static DecodeStatus DecodeSIMM13(MCInst &MI, unsigned insn,
                                  uint64_t Address, const void *Decoder) {
-  unsigned tgt = SignExtend32<13>(fieldFromInstruction(insn, 0, 13));
+  int64_t tgt = SignExtend32<13>(fieldFromInstruction(insn, 0, 13));
   MI.addOperand(MCOperand::createImm(tgt));
   return MCDisassembler::Success;
 }
