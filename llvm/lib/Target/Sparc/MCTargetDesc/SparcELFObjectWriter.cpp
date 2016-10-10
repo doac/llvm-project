@@ -63,6 +63,7 @@ unsigned SparcELFObjectWriter::getRelocType(MCContext &Ctx,
     case Sparc::fixup_sparc_pc22:    return ELF::R_SPARC_PC22;
     case Sparc::fixup_sparc_pc10:    return ELF::R_SPARC_PC10;
     case Sparc::fixup_sparc_wplt30:  return ELF::R_SPARC_WPLT30;
+    case Sparc::fixup_sparc_disp32:  return ELF::R_SPARC_DISP32;
     }
   }
 
@@ -111,6 +112,7 @@ unsigned SparcELFObjectWriter::getRelocType(MCContext &Ctx,
   case Sparc::fixup_sparc_gdop:          return ELF::R_SPARC_GOTDATA_OP;
   case Sparc::fixup_sparc_gdop_hix22:    return ELF::R_SPARC_GOTDATA_OP_HIX22;
   case Sparc::fixup_sparc_gdop_lox10:    return ELF::R_SPARC_GOTDATA_OP_LOX10;
+  case Sparc::fixup_sparc_32:            return ELF::R_SPARC_32;
   }
 
   return ELF::R_SPARC_NONE;

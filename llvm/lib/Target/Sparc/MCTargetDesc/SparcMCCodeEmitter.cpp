@@ -54,6 +54,10 @@ public:
   SparcMCCodeEmitter &operator=(const SparcMCCodeEmitter &) = delete;
   ~SparcMCCodeEmitter() override = default;
 
+  bool isREX(const MCSubtargetInfo &STI) const {
+    return STI.getFeatureBits()[Sparc::FeatureREX];
+  }
+
   void encodeInstruction(const MCInst &MI, raw_ostream &OS,
                          SmallVectorImpl<MCFixup> &Fixups,
                          const MCSubtargetInfo &STI) const override;
@@ -76,17 +80,34 @@ public:
   unsigned getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
                              SmallVectorImpl<MCFixup> &Fixups,
                              const MCSubtargetInfo &STI) const;
+  unsigned getADDRfiOpValue(const MCInst &MI, unsigned OpNo,
+                            SmallVectorImpl<MCFixup> &Fixups,
+                            const MCSubtargetInfo &STI) const;
+  unsigned getRexShortBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
+                                          SmallVectorImpl<MCFixup> &Fixups,
+                                          const MCSubtargetInfo &STI) const;
+  unsigned getRexLongBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
+                                         SmallVectorImpl<MCFixup> &Fixups,
+                                         const MCSubtargetInfo &STI) const;
   unsigned getBranchPredTargetOpValue(const MCInst &MI, unsigned OpNo,
                                       SmallVectorImpl<MCFixup> &Fixups,
                                       const MCSubtargetInfo &STI) const;
   unsigned getBranchOnRegTargetOpValue(const MCInst &MI, unsigned OpNo,
                                        SmallVectorImpl<MCFixup> &Fixups,
                                        const MCSubtargetInfo &STI) const;
-
 private:
   uint64_t computeAvailableFeatures(const FeatureBitset &FB) const;
   void verifyInstructionPredicates(const MCInst &MI,
                                    uint64_t AvailableFeatures) const;
+  unsigned getImm32OpValue(const MCInst &MI, unsigned OpNo,
+                           SmallVectorImpl<MCFixup> &Fixups,
+                           const MCSubtargetInfo &STI) const;
+  unsigned getRexIntRegEncoding(const MCInst &MI, unsigned OpNo,
+                                SmallVectorImpl<MCFixup> &Fixups,
+                                const MCSubtargetInfo &STI) const;
+  unsigned getRexFPRegEncoding(const MCInst &MI, unsigned OpNo,
+                               SmallVectorImpl<MCFixup> &Fixups,
+                               const MCSubtargetInfo &STI) const;
 };
 
 } // end anonymous namespace
@@ -97,10 +118,30 @@ void SparcMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   verifyInstructionPredicates(MI,
                               computeAvailableFeatures(STI.getFeatureBits()));
 
-  unsigned Bits = getBinaryCodeForInstr(MI, Fixups, STI);
-  support::endian::write(OS, Bits,
-                         Ctx.getAsmInfo()->isLittleEndian() ? support::little
-                                                            : support::big);
+  uint64_t Bits = getBinaryCodeForInstr(MI, Fixups, STI);
+
+  support::endianness Endian = Ctx.getAsmInfo()->isLittleEndian() ? support::little
+    : support::big;
+
+  const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
+
+  // Get byte count of instruction
+  unsigned Size = Desc.getSize();
+
+  switch (Size) {
+  default:
+    llvm_unreachable("Unhandled encodeInstruction length!");
+  case 2:
+    support::endian::write<uint16_t>(OS, Bits, Endian);
+    break;
+  case 4:
+    support::endian::write<uint32_t>(OS, Bits, Endian);
+    break;
+  case 6:
+    support::endian::write<uint16_t>(OS, Bits >> 32, Endian);
+    support::endian::write<uint32_t>(OS, Bits, Endian);
+  }
+
   unsigned tlsOpNo = 0;
   switch (MI.getOpcode()) {
   default: break;
@@ -151,7 +192,9 @@ getCallTargetOpValue(const MCInst &MI, unsigned OpNo,
                      SmallVectorImpl<MCFixup> &Fixups,
                      const MCSubtargetInfo &STI) const {
   const MCOperand &MO = MI.getOperand(OpNo);
-  if (MO.isReg() || MO.isImm())
+  if (MO.isImm())
+    return MO.getImm() >> 2;
+  if (MO.isReg())
     return getMachineOpValue(MI, MO, Fixups, STI);
 
   if (MI.getOpcode() == SP::TLS_CALL) {
@@ -176,7 +219,13 @@ getCallTargetOpValue(const MCInst &MI, unsigned OpNo,
       fixupKind = (MCFixupKind)Sparc::fixup_sparc_wplt30;
   }
 
-  Fixups.push_back(MCFixup::create(0, MO.getExpr(), fixupKind));
+  const MCExpr *FixupExpression = MO.getExpr();
+
+  if (isREX(STI))
+    FixupExpression = MCBinaryExpr::createAdd(
+        MO.getExpr(), MCConstantExpr::create(+2, Ctx), Ctx);
+
+  Fixups.push_back(MCFixup::create(0, FixupExpression, fixupKind));
 
   return 0;
 }
@@ -194,10 +243,78 @@ getBranchTargetOpValue(const MCInst &MI, unsigned OpNo,
   return 0;
 }
 
-unsigned SparcMCCodeEmitter::
-getBranchPredTargetOpValue(const MCInst &MI, unsigned OpNo,
-                           SmallVectorImpl<MCFixup> &Fixups,
-                           const MCSubtargetInfo &STI) const {
+unsigned
+SparcMCCodeEmitter::getADDRfiOpValue(const MCInst &MI, unsigned OpNo,
+                                     SmallVectorImpl<MCFixup> &Fixups,
+                                     const MCSubtargetInfo &STI) const {
+
+  const MCOperand &MO1 = MI.getOperand(OpNo);
+  const MCOperand &MO2 = MI.getOperand(OpNo + 1);
+  unsigned RegVal;
+  unsigned EncodedValue;
+
+  switch (MO1.getReg()) {
+  case SP::I6: // FP
+    RegVal = 0;
+    break;
+  case SP::O6: // SP
+    RegVal = 1;
+    break;
+  case SP::I0:
+    RegVal = 2;
+    break;
+  case SP::O0:
+    RegVal = 3;
+    break;
+  default:
+    llvm_unreachable("Unsupported register");
+  }
+
+  EncodedValue = RegVal << 5;
+  EncodedValue |= MO2.getImm() >> 2;
+
+  return EncodedValue;
+}
+
+unsigned SparcMCCodeEmitter::getRexShortBranchTargetOpValue(
+    const MCInst &MI, unsigned OpNo, SmallVectorImpl<MCFixup> &Fixups,
+    const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+
+  assert(!MO.isReg());
+
+  if (MO.isImm()) {
+    unsigned value = getMachineOpValue(MI, MO, Fixups, STI);
+    assert(!(value & 1));
+    return value >> 1;
+  }
+
+  Fixups.push_back(
+      MCFixup::create(0, MO.getExpr(), (MCFixupKind)Sparc::fixup_sparc_br8));
+  return 0;
+}
+
+unsigned SparcMCCodeEmitter::getRexLongBranchTargetOpValue(
+    const MCInst &MI, unsigned OpNo, SmallVectorImpl<MCFixup> &Fixups,
+    const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+
+  assert(!MO.isReg());
+
+  if (MO.isImm()) {
+    unsigned value = getMachineOpValue(MI, MO, Fixups, STI);
+    assert(!(value & 1));
+    return value >> 1;
+  }
+
+  Fixups.push_back(
+      MCFixup::create(0, MO.getExpr(), (MCFixupKind)Sparc::fixup_sparc_br24));
+  return 0;
+}
+
+unsigned SparcMCCodeEmitter::getBranchPredTargetOpValue(
+    const MCInst &MI, unsigned OpNo, SmallVectorImpl<MCFixup> &Fixups,
+    const MCSubtargetInfo &STI) const {
   const MCOperand &MO = MI.getOperand(OpNo);
   if (MO.isReg() || MO.isImm())
     return getMachineOpValue(MI, MO, Fixups, STI);
@@ -223,7 +340,56 @@ getBranchOnRegTargetOpValue(const MCInst &MI, unsigned OpNo,
   return 0;
 }
 
+unsigned SparcMCCodeEmitter::getImm32OpValue(const MCInst &MI, unsigned OpNo,
+                                             SmallVectorImpl<MCFixup> &Fixups,
+                                             const MCSubtargetInfo &STI) const {
+  const MCOperand &MO = MI.getOperand(OpNo);
+  if (MO.isImm())
+    return MO.getImm();
+
+  assert(MO.isExpr());
+  const MCExpr *Expr = MO.getExpr();
+  Fixups.push_back(
+      MCFixup::create(2, Expr, (MCFixupKind)Sparc::fixup_sparc_32));
+  return 0;
+}
+
+static const unsigned RexIntRegsMapping[32] = {
+    24, 25, 26, 27, 28, 29, 30, 31, 0, 1, 2,  3,  20, 21, 22, 23,
+    16, 17, 18, 19, 4,  5,  6,  7,  8, 9, 10, 11, 12, 13, 14, 15};
+
+static const unsigned RexFloatRegsMapping[32] = {
+    8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 4,  5,  6,  7,
+    0, 1, 2,  3,  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
+
+unsigned
+SparcMCCodeEmitter::getRexIntRegEncoding(const MCInst &MI, unsigned OpNo,
+                                         SmallVectorImpl<MCFixup> &Fixups,
+                                         const MCSubtargetInfo &STI) const {
+
+  const MCOperand &MO = MI.getOperand(OpNo);
+  assert(MO.isReg());
+
+  unsigned regval = Ctx.getRegisterInfo()->getEncodingValue(MO.getReg());
+
+  return RexIntRegsMapping[regval];
+}
+
+unsigned
+SparcMCCodeEmitter::getRexFPRegEncoding(const MCInst &MI, unsigned OpNo,
+                                        SmallVectorImpl<MCFixup> &Fixups,
+                                        const MCSubtargetInfo &STI) const {
+
+  const MCOperand &MO = MI.getOperand(OpNo);
+  assert(MO.isReg());
+
+  unsigned regval = Ctx.getRegisterInfo()->getEncodingValue(MO.getReg());
+
+  return RexFloatRegsMapping[regval];
+}
+
 #define ENABLE_INSTR_PREDICATE_VERIFIER
+
 #include "SparcGenMCCodeEmitter.inc"
 
 MCCodeEmitter *llvm::createSparcMCCodeEmitter(const MCInstrInfo &MCII,

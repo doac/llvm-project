@@ -169,6 +169,8 @@ void SparcInstPrinter::printCCOperand(const MCInst *MI, int opNum,
   switch (MI->getOpcode()) {
   default: break;
   case SP::FBCOND:
+  case SP::RFBCOND:
+  case SP::RFLBCOND:
   case SP::FBCONDA:
   case SP::BPFCC:
   case SP::BPFCCA:

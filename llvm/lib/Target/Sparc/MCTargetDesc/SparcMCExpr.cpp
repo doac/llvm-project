@@ -83,6 +83,7 @@ bool SparcMCExpr::printVariantKind(raw_ostream &OS, VariantKind Kind)
   case VK_Sparc_GDOP_HIX22:    OS << "%gdop_hix22("; break;
   case VK_Sparc_GDOP_LOX10:    OS << "%gdop_lox10("; break;
   case VK_Sparc_GDOP:          OS << "%gdop(";       break;
+  case VK_Sparc_32:            closeParen = false;   break;
   }
   return closeParen;
 }
@@ -165,6 +166,8 @@ Sparc::Fixups SparcMCExpr::getFixupKind(SparcMCExpr::VariantKind Kind) {
   case VK_Sparc_GDOP_HIX22:    return Sparc::fixup_sparc_gdop_hix22;
   case VK_Sparc_GDOP_LOX10:    return Sparc::fixup_sparc_gdop_lox10;
   case VK_Sparc_GDOP:          return Sparc::fixup_sparc_gdop;
+  case VK_Sparc_32:            return Sparc::fixup_sparc_32;
+  case VK_Sparc_R_DISP32:      return Sparc::fixup_sparc_disp32;
   }
 }
 

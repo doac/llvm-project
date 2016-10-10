@@ -102,6 +102,8 @@ class SparcAsmParser : public MCTargetAsmParser {
     return getSTI().getTargetTriple().getArch() == Triple::sparcv9;
   }
 
+  bool isREX() const { return getSTI().getFeatureBits()[Sparc::FeatureREX]; }
+
   bool expandSET(MCInst &Inst, SMLoc IDLoc,
                  SmallVectorImpl<MCInst> &Instructions);
 
@@ -260,6 +262,62 @@ public:
   bool isMEMri() const { return Kind == k_MemoryImm; }
   bool isMembarTag() const { return Kind == k_Immediate; }
 
+  bool isMEMREXr() const {
+    return Kind == k_MemoryReg && Mem.OffsetReg == Sparc::G0 &&
+           SparcMCRegisterClasses[SP::RexIntRegsRegClassID].contains(Mem.Base);
+  }
+
+  bool isConstant() const {
+    if (Kind != k_Immediate)
+      return false;
+    return Imm.Val->getKind() == MCExpr::Constant;
+  }
+
+  bool isBrTarget8() const {
+    if (Kind != k_Immediate)
+      return false;
+    if (Imm.Val->getKind() == MCExpr::Target)
+      return true;
+    if (const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(Imm.Val))
+      return !(CE->getValue() & 1) && isInt<9>(CE->getValue());
+    return false;
+  }
+
+  bool isBrTarget24() const {
+    if (Kind != k_Immediate)
+      return false;
+    if (Imm.Val->getKind() == MCExpr::Target)
+      return true;
+    if (const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(Imm.Val))
+      return !(CE->getValue() & 1) && isInt<25>(CE->getValue());
+    return false;
+  }
+
+  bool isNImm13() const {
+    return isConstant() && (getConstant() < 0) && isInt<13>(getConstant());
+  }
+
+  bool isSImm21() const { return isConstant() && isInt<21>(getConstant()); }
+
+  bool isSImm5() const { return isConstant() && isInt<5>(getConstant()); }
+
+  bool isImm3() const { return isConstant() && isUInt<3>(getConstant()); }
+
+  bool isImm5() const { return isConstant() && isUInt<5>(getConstant()); }
+
+  bool isMEMfi() const {
+    if (Kind != k_MemoryImm)
+      return false;
+    const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(getMemOff());
+    if (!CE)
+      return false;
+    return (Mem.Base == Sparc::I0 || Mem.Base == Sparc::O0 ||
+            Mem.Base == Sparc::I6 || Mem.Base == Sparc::O6) &&
+           ((CE->getValue() & ~0x7c) == 0);
+  }
+
+  bool isMEMffi() const { return isMEMfi() && Mem.Base != Sparc::O0; }
+
   bool isIntReg() const {
     return (Kind == k_Register && Reg.Kind == rk_IntReg);
   }
@@ -277,6 +335,29 @@ public:
     return (Kind == k_Register && Reg.Kind == rk_CoprocReg);
   }
 
+  bool isRexIntReg() const {
+    const MCRegisterClass &RC =
+        SparcMCRegisterClasses[SP::RexIntRegsRegClassID];
+    return (Kind == k_Register && RC.contains(getReg()));
+  }
+
+  bool isRexFPReg() const {
+    const MCRegisterClass &RC = SparcMCRegisterClasses[SP::RexFPRegsRegClassID];
+    return (Kind == k_Register && RC.contains(getReg()));
+  }
+
+  bool isRexDFPReg() const {
+    const MCRegisterClass &RC =
+        SparcMCRegisterClasses[SP::RexDFPRegsRegClassID];
+    return (Kind == k_Register && RC.contains(getReg()));
+  }
+
+  bool isRexIntPairReg() const {
+    const MCRegisterClass &RC =
+        SparcMCRegisterClasses[SP::RexIntPairRegClassID];
+    return (Kind == k_Register && RC.contains(getReg()));
+  }
+
   StringRef getToken() const {
     assert(Kind == k_Token && "Invalid access!");
     return StringRef(Tok.Data, Tok.Length);
@@ -285,6 +366,11 @@ public:
   unsigned getReg() const override {
     assert((Kind == k_Register) && "Invalid access!");
     return Reg.RegNum;
+  }
+
+  int64_t getConstant() const {
+    assert(Imm.Val->getKind() == MCExpr::Constant);
+    return cast<MCConstantExpr>(Imm.Val)->getValue();
   }
 
   const MCExpr *getImm() const {
@@ -373,6 +459,13 @@ public:
     assert(N == 1 && "Invalid number of operands!");
     const MCExpr *Expr = getImm();
     addExpr(Inst, Expr);
+  }
+
+  void addMEMREXrOperands(MCInst &Inst, unsigned N) const {
+    assert(N == 1 && "Invalid number of operands!");
+
+    Inst.addOperand(MCOperand::createReg(getMemBase()));
+    assert(getMemOffsetReg() == Sparc::G0 && "Invalid offset");
   }
 
   static std::unique_ptr<SparcOperand> CreateToken(StringRef Str, SMLoc S) {
@@ -828,6 +921,12 @@ SparcAsmParser::parseOperand(OperandVector &Operands, StringRef Mnemonic) {
       SMLoc E = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer()-1);
       Operands.push_back(SparcOperand::CreateReg(RegNo, RegKind, S, E));
       ResTy = MatchOperand_Success;
+    } else if (isREX() && (Mnemonic == "rld32" || Mnemonic == "rld32pc")) {
+      std::unique_ptr<SparcOperand> Op;
+      ResTy = parseSparcAsmOperand(Op);
+      if (ResTy != MatchOperand_Success || !Op || !Op->isImm())
+        return MatchOperand_ParseFail;
+      Operands.push_back(std::move(Op));
     } else {
       ResTy = parseMEMOperand(Operands);
     }
@@ -936,6 +1035,9 @@ SparcAsmParser::parseSparcAsmOperand(std::unique_ptr<SparcOperand> &Op,
     if (!EVal->evaluateAsAbsolute(Res)) {
       SparcMCExpr::VariantKind Kind = SparcMCExpr::VK_Sparc_13;
 
+      if (isREX())
+        Kind = SparcMCExpr::VK_Sparc_32;
+
       if (getContext().getObjectFileInfo()->isPositionIndependent()) {
         if (isCall)
           Kind = SparcMCExpr::VK_Sparc_WPLT30;
@@ -952,15 +1054,16 @@ SparcAsmParser::parseSparcAsmOperand(std::unique_ptr<SparcOperand> &Op,
 
 OperandMatchResultTy
 SparcAsmParser::parseBranchModifiers(OperandVector &Operands) {
-  // parse (,a|,pn|,pt)+
 
+  // parse (,a|,pn|,pt|,l)+
   while (getLexer().is(AsmToken::Comma)) {
     Parser.Lex(); // Eat the comma
 
     if (!getLexer().is(AsmToken::Identifier))
       return MatchOperand_ParseFail;
     StringRef modName = Parser.getTok().getString();
-    if (modName == "a" || modName == "pn" || modName == "pt") {
+    if (modName == "a" || modName == "pn" || modName == "pt" ||
+        modName == "l") {
       Operands.push_back(SparcOperand::CreateToken(modName,
                                                    Parser.getTok().getLoc()));
       Parser.Lex(); // eat the identifier.
@@ -1314,6 +1417,10 @@ unsigned SparcAsmParser::validateTargetOperandClass(MCParsedAsmOperand &GOp,
   if (Op.isFloatOrDoubleReg()) {
     switch (Kind) {
     default: break;
+    case MCK_RexDFPReg:
+      if (!Op.isRexFPReg())
+        break;
+      LLVM_FALLTHROUGH;
     case MCK_DFPRegs:
       if (!Op.isFloatReg() || SparcOperand::MorphToDoubleReg(Op))
         return MCTargetAsmParser::Match_Success;
@@ -1324,9 +1431,20 @@ unsigned SparcAsmParser::validateTargetOperandClass(MCParsedAsmOperand &GOp,
       break;
     }
   }
-  if (Op.isIntReg() && Kind == MCK_IntPair) {
-    if (SparcOperand::MorphToIntPairReg(Op))
-      return MCTargetAsmParser::Match_Success;
+
+  if (Op.isIntReg()) {
+    switch (Kind) {
+    default:
+      break;
+    case MCK_RexIntPairReg:
+      if (!Op.isRexIntReg())
+        break;
+      LLVM_FALLTHROUGH;
+    case MCK_IntPair:
+      if (SparcOperand::MorphToIntPairReg(Op))
+        return MCTargetAsmParser::Match_Success;
+      break;
+    }
   }
   if (Op.isCoprocReg() && Kind == MCK_CoprocPair) {
      if (SparcOperand::MorphToCoprocPairReg(Op))

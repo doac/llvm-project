@@ -98,6 +98,13 @@ namespace llvm {
       fixup_sparc_gdop_lox10,
       fixup_sparc_gdop,
 
+      fixup_sparc_32,
+      fixup_sparc_disp32,
+
+      /// fixups for REX branches
+      fixup_sparc_br8,
+      fixup_sparc_br24,
+
       // Marker
       LastTargetFixupKind,
       NumTargetFixupKinds = LastTargetFixupKind - FirstTargetFixupKind

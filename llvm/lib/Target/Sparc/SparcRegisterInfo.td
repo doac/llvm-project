@@ -381,3 +381,22 @@ let isAllocatable = 0 in {
 def PRRegs : RegisterClass<"SP", [i64], 64,
     (add TPC, TNPC, TSTATE, TT, TICK, TBA, PSTATE, TL, PIL, CWP,
          CANSAVE, CANRESTORE, CLEANWIN, OTHERWIN, WSTATE)>;
+
+// Reduced register set used by REX
+def RexIntRegs : RegisterClass<"SP", [i32], 32,
+                            (add (sequence "I%u", 0, 7),
+                                 (sequence "L%u", 4, 7),
+                                 (sequence "O%u", 0, 3))>;
+
+def RexIntPair : RegisterClass<"SP", [v2i32], 64,
+    (add I0_I1, I2_I3, I4_I5, I6_I7,
+         L4_L5, L6_L7,
+         O0_O1, O2_O3)>;
+
+def RexFPRegs : RegisterClass<"SP", [f32], 32,
+                            (add (sequence "F%u", 0, 7),
+                            (sequence "F%u", 12, 19))>;
+
+def RexDFPRegs : RegisterClass<"SP", [f64], 64,
+                            (add (sequence "D%u", 0, 3),
+                            (sequence "D%u", 6, 9))>;

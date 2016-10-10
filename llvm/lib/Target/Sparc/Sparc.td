@@ -52,6 +52,9 @@ def FeatureLeon
 def FeaturePWRPSR
   : SubtargetFeature<"leonpwrpsr", "HasPWRPSR", "true",
                      "Enable the PWRPSR instruction">;
+def FeatureREX
+  : SubtargetFeature<"rex", "IsREX", "true",
+                     "Enable REX instruction set extension">;
 
 def FeatureHardQuad
   : SubtargetFeature<"hard-quad-float", "HasHardQuad", "true",

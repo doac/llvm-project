@@ -75,6 +75,9 @@ def HasFSMULD : Predicate<"!Subtarget->hasNoFSMULD()">;
 // will pick deprecated instructions.
 def UseDeprecatedInsts : Predicate<"Subtarget->useDeprecatedV8Instructions()">;
 
+// True when generating code using the REX instruction set extension.
+def IsREX : Predicate<"Subtarget->isREX()">;
+
 //===----------------------------------------------------------------------===//
 // Instruction Pattern Stuff
 //===----------------------------------------------------------------------===//
@@ -1746,4 +1749,5 @@ def : Pat<(build_vector (i32 IntRegs:$a1), (i32 IntRegs:$a2)),
 
 include "SparcInstr64Bit.td"
 include "SparcInstrVIS.td"
+include "SparcInstrRex.td"
 include "SparcInstrAliases.td"

@@ -24,6 +24,8 @@ static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
   switch (Kind) {
   default:
     llvm_unreachable("Unknown fixup kind!");
+  case Sparc::fixup_sparc_32:
+  case Sparc::fixup_sparc_disp32:
   case FK_Data_1:
   case FK_Data_2:
   case FK_Data_4:
@@ -45,6 +47,12 @@ static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
 
   case Sparc::fixup_sparc_br16_14:
     return (Value >> 2) & 0x3fff;
+
+  case Sparc::fixup_sparc_br8:
+    return (Value >> 1) & 0xff;
+
+  case Sparc::fixup_sparc_br24:
+    return ((Value >> 9) & 0xffff) | ((Value >> 1) & 0xff) << 16;
 
   case Sparc::fixup_sparc_pc22:
   case Sparc::fixup_sparc_got22:
@@ -176,6 +184,10 @@ namespace {
         { "fixup_sparc_gdop",           0,  0,  0 },
         { "fixup_sparc_gdop_hix22",     0,  0,  0 },
         { "fixup_sparc_gdop_lox10",     0,  0,  0 },
+        { "fixup_sparc_32",             0,  32, 0 },
+        { "fixup_sparc_pc32",           0,  32, MCFixupKindInfo::FKF_IsPCRel },
+        { "fixup_sparc_br8",            8,   8, MCFixupKindInfo::FKF_IsPCRel },
+        { "fixup_sparc_br24",           8,  24, MCFixupKindInfo::FKF_IsPCRel },
       };
 
       const static MCFixupKindInfo InfosLE[Sparc::NumTargetFixupKinds] = {
@@ -220,6 +232,10 @@ namespace {
         { "fixup_sparc_gdop",           0,  0,  0 },
         { "fixup_sparc_gdop_hix22",     0,  0,  0 },
         { "fixup_sparc_gdop_lox10",     0,  0,  0 },
+        { "fixup_sparc_32",             0,  32, 0 },
+        { "fixup_sparc_pc32",           0,  32, MCFixupKindInfo::FKF_IsPCRel },
+        { "fixup_sparc_br8",            0,   8, MCFixupKindInfo::FKF_IsPCRel },
+        { "fixup_sparc_br24",           0,  24, MCFixupKindInfo::FKF_IsPCRel },
       };
 
       if (Kind < FirstTargetFixupKind)
@@ -287,13 +303,16 @@ namespace {
     }
 
     bool writeNopData(raw_ostream &OS, uint64_t Count) const override {
-      // Cannot emit NOP with size not multiple of 32 bits.
-      if (Count % 4 != 0)
-        return false;
 
-      uint64_t NumNops = Count / 4;
-      for (uint64_t i = 0; i != NumNops; ++i)
-        support::endian::write<uint32_t>(OS, 0x01000000, Endian);
+      // Can only emit NOP with size multiple of 32 or 16 bits.
+      if (Count % 4 == 0) {
+        uint64_t NumNops = Count / 4;
+        for (uint64_t i = 0; i != NumNops; ++i)
+          support::endian::write(OS, 0x01000000, Endian);
+      } else if (Count % 2 == 0) {
+          OS.write_zeros(Count);
+      } else
+        return false;
 
       return true;
     }

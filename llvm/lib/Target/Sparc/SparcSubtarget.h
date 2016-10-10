@@ -33,6 +33,7 @@ class SparcSubtarget : public SparcGenSubtargetInfo {
   Triple TargetTriple;
   virtual void anchor();
   bool UseSoftMulDiv;
+  bool IsREX;
   bool IsV9;
   bool IsLeon;
   bool V8DeprecatedInsts;
@@ -104,6 +105,7 @@ public:
   bool isVIS() const { return IsVIS; }
   bool isVIS2() const { return IsVIS2; }
   bool isVIS3() const { return IsVIS3; }
+  bool isREX() const { return IsREX; }
   bool useDeprecatedV8Instructions() const { return V8DeprecatedInsts; }
   bool hasHardQuad() const { return HasHardQuad; }
   bool usePopc() const { return UsePopc; }

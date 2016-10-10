@@ -61,6 +61,7 @@ public:
     VK_Sparc_GDOP_HIX22,
     VK_Sparc_GDOP_LOX10,
     VK_Sparc_GDOP,
+    VK_Sparc_32,
   };
 
 private:
