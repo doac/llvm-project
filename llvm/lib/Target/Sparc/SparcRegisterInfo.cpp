@@ -164,9 +164,135 @@ SparcRegisterInfo::getPointerRegClass(const MachineFunction &MF,
   return Subtarget.is64Bit() ? &SP::I64RegsRegClass : &SP::IntRegsRegClass;
 }
 
+static void replaceFIRex(MachineFunction &MF, MachineBasicBlock::iterator II,
+                         MachineInstr &MI, DebugLoc dl, unsigned FIOperandNum,
+                         int Offset, unsigned FramePtr) {
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
+  SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
+
+  const bool FitsIn16bit = (Offset & ~0x7c) == 0;
+  unsigned NewOp;
+  bool Is16bit = false;
+
+  switch (MI.getOpcode()) {
+  case SP::RLDri:
+    NewOp = FitsIn16bit ? SP::RLDfi : SP::LDri;
+    Is16bit = FitsIn16bit;
+    break;
+  case SP::RSTri:
+    NewOp = FitsIn16bit ? SP::RSTfi : SP::STri;
+    Is16bit = FitsIn16bit;
+    break;
+  case SP::RLDFri:
+    NewOp = FitsIn16bit ? SP::RLDFfi : SP::LDFri;
+    Is16bit = FitsIn16bit;
+    break;
+  case SP::RSTFri:
+    NewOp = FitsIn16bit ? SP::RSTFfi : SP::STFri;
+    Is16bit = FitsIn16bit;
+    break;
+  case SP::LEA_ADDri:
+    NewOp = SP::ADDri;
+    break;
+  default:
+    NewOp = 0;
+  }
+
+  if (NewOp) {
+    MI.setDesc(TII.get(NewOp));
+  }
+
+  if ((FitsIn16bit && Is16bit) || (isInt<7>(Offset) && !Is16bit)) {
+    MI.getOperand(FIOperandNum).ChangeToRegister(FramePtr, false);
+    MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset);
+    return;
+  }
+
+  unsigned DstReg =
+      MF.getRegInfo().createVirtualRegister(&SP::RexIntRegsRegClass);
+
+  if (FuncInfo->isLeafProc())
+    MF.getRegInfo().constrainRegClass(DstReg, &SP::LeafRegsRegClass);
+
+  if (isInt<21>(Offset))
+    BuildMI(*MI.getParent(), II, dl, TII.get(SP::RSET21), DstReg)
+        .addImm(Offset);
+  else
+    BuildMI(*MI.getParent(), II, dl, TII.get(SP::RSET32), DstReg)
+        .addImm(Offset);
+
+  switch (MI.getOpcode()) {
+  case SP::STri:
+    NewOp = SP::STrr;
+    break;
+  case SP::LDri:
+    NewOp = SP::LDrr;
+    break;
+  case SP::LDFri:
+    NewOp = SP::LDFrr;
+    break;
+  case SP::STFri:
+    NewOp = SP::STFrr;
+    break;
+  case SP::LDDri:
+    NewOp = SP::LDDrr;
+    break;
+  case SP::STDri:
+    NewOp = SP::STDrr;
+    break;
+  case SP::LDSHri:
+    NewOp = SP::LDSHrr;
+    break;
+  case SP::STDFri:
+    NewOp = SP::STDFrr;
+    break;
+  case SP::LDDFri:
+    NewOp = SP::LDDFrr;
+    break;
+  case SP::ADDri:
+    NewOp = SP::ADDrr;
+    break;
+  case SP::LDUBri:
+    NewOp = SP::LDUBrr;
+    break;
+  case SP::LDUHri:
+    NewOp = SP::LDUHrr;
+    break;
+  case SP::STHri:
+    NewOp = SP::STHrr;
+    break;
+  case SP::LDSBri:
+    NewOp = SP::LDSBrr;
+    break;
+  case SP::STBri:
+    NewOp = SP::STBrr;
+    break;
+  default:
+    NewOp = 0;
+  }
+
+  if (NewOp) {
+    MI.setDesc(TII.get(NewOp));
+  }
+  MI.getOperand(FIOperandNum).ChangeToRegister(FramePtr, false);
+
+  MI.getOperand(FIOperandNum + 1).ChangeToRegister(DstReg, false, false, true);
+  return;
+}
+
 static void replaceFI(MachineFunction &MF, MachineBasicBlock::iterator II,
-                      MachineInstr &MI, const DebugLoc &dl,
-                      unsigned FIOperandNum, int Offset, unsigned FramePtr) {
+                      MachineInstr &MI, DebugLoc dl, unsigned FIOperandNum,
+                      int Offset, unsigned FramePtr) {
+  const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+
+  if (Subtarget.isREX()) {
+    replaceFIRex(MF, II, MI, dl, FIOperandNum, Offset, FramePtr);
+    return;
+  }
+
   // Replace frame index with a frame pointer reference.
   if (Offset >= -4096 && Offset <= 4095) {
     // If the offset is small enough to fit in the immediate field, directly
@@ -176,7 +302,6 @@ static void replaceFI(MachineFunction &MF, MachineBasicBlock::iterator II,
     return;
   }
 
-  const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
   const TargetRegisterClass *RC =
       FuncInfo->isLeafProc() ? &SP::LeafRegsRegClass : &SP::IntRegsRegClass;
