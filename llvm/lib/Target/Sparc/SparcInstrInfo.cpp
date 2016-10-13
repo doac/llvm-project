@@ -45,7 +45,8 @@ unsigned SparcInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
                                              int &FrameIndex) const {
   if (MI.getOpcode() == SP::LDri || MI.getOpcode() == SP::LDXri ||
       MI.getOpcode() == SP::LDFri || MI.getOpcode() == SP::LDDFri ||
-      MI.getOpcode() == SP::LDQFri) {
+      MI.getOpcode() == SP::LDQFri || MI.getOpcode() == SP::RLDri ||
+      MI.getOpcode() == SP::RLDFri) {
     if (MI.getOperand(1).isFI() && MI.getOperand(2).isImm() &&
         MI.getOperand(2).getImm() == 0) {
       FrameIndex = MI.getOperand(1).getIndex();
@@ -64,7 +65,8 @@ unsigned SparcInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
                                             int &FrameIndex) const {
   if (MI.getOpcode() == SP::STri || MI.getOpcode() == SP::STXri ||
       MI.getOpcode() == SP::STFri || MI.getOpcode() == SP::STDFri ||
-      MI.getOpcode() == SP::STQFri) {
+      MI.getOpcode() == SP::STQFri || MI.getOpcode() == SP::RSTri ||
+      MI.getOpcode() == SP::RSTFri) {
     if (MI.getOperand(0).isFI() && MI.getOperand(1).isImm() &&
         MI.getOperand(1).getImm() == 0) {
       FrameIndex = MI.getOperand(0).getIndex();
@@ -418,6 +420,25 @@ storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
       MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOStore,
       MFI.getObjectSize(FI), MFI.getObjectAlignment(FI));
 
+  if (Subtarget.isREX()) {
+    if (SP::RexIntRegsRegClass.hasSubClassEq(RC)) {
+      BuildMI(MBB, I, DL, get(SP::RSTri))
+          .addFrameIndex(FI)
+          .addImm(0)
+          .addReg(SrcReg, getKillRegState(isKill))
+          .addMemOperand(MMO);
+      return;
+    }
+
+    if (RC == &SP::RexFPRegsRegClass) {
+      BuildMI(MBB, I, DL, get(SP::RSTFri))
+          .addFrameIndex(FI)
+          .addImm(0)
+          .addReg(SrcReg, getKillRegState(isKill))
+          .addMemOperand(MMO);
+      return;
+    }
+  }
   // On the order of operands here: think "[FrameIdx + 0] = SrcReg".
   if (RC == &SP::I64RegsRegClass)
     BuildMI(MBB, I, DL, get(SP::STXri)).addFrameIndex(FI).addImm(0)
@@ -425,7 +446,7 @@ storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
   else if (RC == &SP::IntRegsRegClass || RC == &SP::LeafRegsRegClass)
     BuildMI(MBB, I, DL, get(SP::STri)).addFrameIndex(FI).addImm(0)
       .addReg(SrcReg, getKillRegState(isKill)).addMemOperand(MMO);
-  else if (RC == &SP::IntPairRegClass)
+  else if (SP::IntPairRegClass.hasSubClassEq(RC))
     BuildMI(MBB, I, DL, get(SP::STDri)).addFrameIndex(FI).addImm(0)
       .addReg(SrcReg, getKillRegState(isKill)).addMemOperand(MMO);
   else if (RC == &SP::FPRegsRegClass)
@@ -457,13 +478,32 @@ loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
       MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOLoad,
       MFI.getObjectSize(FI), MFI.getObjectAlignment(FI));
 
+  if (Subtarget.isREX()) {
+
+    if (SP::RexIntRegsRegClass.hasSubClassEq(RC)) {
+      BuildMI(MBB, I, DL, get(SP::RLDri), DestReg)
+          .addFrameIndex(FI)
+          .addImm(0)
+          .addMemOperand(MMO);
+      return;
+    }
+
+    if (RC == &SP::RexFPRegsRegClass) {
+      BuildMI(MBB, I, DL, get(SP::RLDFri), DestReg)
+          .addFrameIndex(FI)
+          .addImm(0)
+          .addMemOperand(MMO);
+      return;
+    }
+  }
+
   if (RC == &SP::I64RegsRegClass)
     BuildMI(MBB, I, DL, get(SP::LDXri), DestReg).addFrameIndex(FI).addImm(0)
       .addMemOperand(MMO);
   else if (RC == &SP::IntRegsRegClass || RC == &SP::LeafRegsRegClass)
     BuildMI(MBB, I, DL, get(SP::LDri), DestReg).addFrameIndex(FI).addImm(0)
       .addMemOperand(MMO);
-  else if (RC == &SP::IntPairRegClass)
+  else if (SP::IntPairRegClass.hasSubClassEq(RC))
     BuildMI(MBB, I, DL, get(SP::LDDri), DestReg).addFrameIndex(FI).addImm(0)
       .addMemOperand(MMO);
   else if (RC == &SP::FPRegsRegClass)
