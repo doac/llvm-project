@@ -525,6 +525,10 @@
         ! CHECK-NEXT:               !   fixup A - offset: 2, value: foo, kind: fixup_sparc_32
         rset32 foo, %l4
 
+        ! CHECK: rset32 %tle_32(foo), %l4     ! encoding: [0x93,0xe8,A,A,A,A]
+                                              !   fixup A - offset: 2, value: %tle_32(foo), kind: fixup_sparc_tls_le_32
+        rset32 %tle_32(foo), %l4
+
        ! CHECK: rset32pc 50000, %l4  ! encoding: [0x93,0xe9,0x00,0x00,0xc3,0x50]
         rset32pc 50000, %l4
 

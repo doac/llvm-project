@@ -120,7 +120,7 @@ namespace llvm {
       return SP::I1;
     }
 
-    SDValue getThreadPointerRegister(SelectionDAG &DAG) const;
+    unsigned getThreadPointerRegister(SelectionDAG &DAG) const;
 
     /// Return if the target supports combining a
     /// chain like:
@@ -235,6 +235,7 @@ namespace llvm {
     SDValue LowerBlockAddress(SDValue Op, SelectionDAG &DAG) const;
 
     SDValue withTargetFlags(SDValue Op, unsigned TF, SelectionDAG &DAG) const;
+    SDValue makeREXConst32(SDValue Op, unsigned TF, SelectionDAG &DAG) const;
     SDValue makeHiLoPair(SDValue Op, unsigned HiTF, unsigned LoTF,
                          SelectionDAG &DAG) const;
     SDValue makeAddress(SDValue Op, SelectionDAG &DAG) const;

@@ -23,6 +23,7 @@
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/TargetRegistry.h"
+#include "MCTargetDesc/SparcMCExpr.h"
 
 using namespace llvm;
 
@@ -535,11 +536,17 @@ unsigned SparcInstrInfo::getGlobalBaseReg(MachineFunction *MF) const
 
   const TargetRegisterClass *PtrRC =
     Subtarget.is64Bit() ? &SP::I64RegsRegClass : &SP::IntRegsRegClass;
+  if (Subtarget.isREX())
+    PtrRC =  &SP::RexIntRegsRegClass;
   GlobalBaseReg = RegInfo.createVirtualRegister(PtrRC);
 
   DebugLoc dl;
 
-  BuildMI(FirstMBB, MBBI, dl, get(SP::GETPCX), GlobalBaseReg);
+  if (Subtarget.isREX())
+    BuildMI(FirstMBB, MBBI, dl, get(SP::RSET32PC), GlobalBaseReg)
+      .addExternalSymbol("_GLOBAL_OFFSET_TABLE_", SparcMCExpr::VK_Sparc_R_DISP32);
+  else
+    BuildMI(FirstMBB, MBBI, dl, get(SP::GETPCX), GlobalBaseReg);
   SparcFI->setGlobalBaseReg(GlobalBaseReg);
   return GlobalBaseReg;
 }

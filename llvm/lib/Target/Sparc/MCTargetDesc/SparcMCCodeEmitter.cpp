@@ -353,8 +353,16 @@ unsigned SparcMCCodeEmitter::getImm32OpValue(const MCInst &MI, unsigned OpNo,
 
   assert(MO.isExpr());
   const MCExpr *Expr = MO.getExpr();
-  Fixups.push_back(
-      MCFixup::create(2, Expr, (MCFixupKind)Sparc::fixup_sparc_32));
+  if (const SparcMCExpr *SExpr = dyn_cast<SparcMCExpr>(Expr)) {
+    MCFixupKind Kind = (MCFixupKind)SExpr->getFixupKind();
+    Fixups.push_back(MCFixup::create(2, Expr, Kind));
+    return 0;
+  }
+
+  int64_t Res;
+  if (Expr->evaluateAsAbsolute(Res))
+    return Res;
+  
   return 0;
 }
 

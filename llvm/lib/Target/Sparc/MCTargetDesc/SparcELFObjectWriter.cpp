@@ -91,19 +91,24 @@ unsigned SparcELFObjectWriter::getRelocType(MCContext &Ctx,
   case Sparc::fixup_sparc_got22: return ELF::R_SPARC_GOT22;
   case Sparc::fixup_sparc_got10: return ELF::R_SPARC_GOT10;
   case Sparc::fixup_sparc_got13: return ELF::R_SPARC_GOT13;
+  case Sparc::fixup_sparc_got32: return ELF::R_SPARC_GOT32;
   case Sparc::fixup_sparc_tls_gd_hi22:   return ELF::R_SPARC_TLS_GD_HI22;
   case Sparc::fixup_sparc_tls_gd_lo10:   return ELF::R_SPARC_TLS_GD_LO10;
+  case Sparc::fixup_sparc_tls_gd_32:     return ELF::R_SPARC_TLS_GD_32;
   case Sparc::fixup_sparc_tls_gd_add:    return ELF::R_SPARC_TLS_GD_ADD;
   case Sparc::fixup_sparc_tls_gd_call:   return ELF::R_SPARC_TLS_GD_CALL;
   case Sparc::fixup_sparc_tls_ldm_hi22:  return ELF::R_SPARC_TLS_LDM_HI22;
   case Sparc::fixup_sparc_tls_ldm_lo10:  return ELF::R_SPARC_TLS_LDM_LO10;
+  case Sparc::fixup_sparc_tls_ldm_32:    return ELF::R_SPARC_TLS_LDM_32;
   case Sparc::fixup_sparc_tls_ldm_add:   return ELF::R_SPARC_TLS_LDM_ADD;
   case Sparc::fixup_sparc_tls_ldm_call:  return ELF::R_SPARC_TLS_LDM_CALL;
   case Sparc::fixup_sparc_tls_ldo_hix22: return ELF::R_SPARC_TLS_LDO_HIX22;
   case Sparc::fixup_sparc_tls_ldo_lox10: return ELF::R_SPARC_TLS_LDO_LOX10;
+  case Sparc::fixup_sparc_tls_ldo_32:    return ELF::R_SPARC_TLS_LDO_32;
   case Sparc::fixup_sparc_tls_ldo_add:   return ELF::R_SPARC_TLS_LDO_ADD;
   case Sparc::fixup_sparc_tls_ie_hi22:   return ELF::R_SPARC_TLS_IE_HI22;
   case Sparc::fixup_sparc_tls_ie_lo10:   return ELF::R_SPARC_TLS_IE_LO10;
+  case Sparc::fixup_sparc_tls_ie_32:     return ELF::R_SPARC_TLS_IE_32;
   case Sparc::fixup_sparc_tls_ie_ld:     return ELF::R_SPARC_TLS_IE_LD;
   case Sparc::fixup_sparc_tls_ie_ldx:    return ELF::R_SPARC_TLS_IE_LDX;
   case Sparc::fixup_sparc_tls_ie_add:    return ELF::R_SPARC_TLS_IE_ADD;
@@ -112,6 +117,7 @@ unsigned SparcELFObjectWriter::getRelocType(MCContext &Ctx,
   case Sparc::fixup_sparc_gdop:          return ELF::R_SPARC_GOTDATA_OP;
   case Sparc::fixup_sparc_gdop_hix22:    return ELF::R_SPARC_GOTDATA_OP_HIX22;
   case Sparc::fixup_sparc_gdop_lox10:    return ELF::R_SPARC_GOTDATA_OP_LOX10;
+  case Sparc::fixup_sparc_tls_le_32:     return ELF::R_SPARC_TLS_LE_32;
   case Sparc::fixup_sparc_32:            return ELF::R_SPARC_32;
   }
 
@@ -131,6 +137,7 @@ bool SparcELFObjectWriter::needsRelocateWithSymbol(const MCSymbol &Sym,
     case ELF::R_SPARC_GOT10:
     case ELF::R_SPARC_GOT13:
     case ELF::R_SPARC_GOT22:
+    case ELF::R_SPARC_GOT32:
     case ELF::R_SPARC_GOTDATA_HIX22:
     case ELF::R_SPARC_GOTDATA_LOX10:
     case ELF::R_SPARC_GOTDATA_OP_HIX22:

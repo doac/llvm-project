@@ -26,6 +26,12 @@ static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
     llvm_unreachable("Unknown fixup kind!");
   case Sparc::fixup_sparc_32:
   case Sparc::fixup_sparc_disp32:
+  case Sparc::fixup_sparc_tls_gd_32:
+  case Sparc::fixup_sparc_tls_ldm_32:
+  case Sparc::fixup_sparc_tls_ldo_32:
+  case Sparc::fixup_sparc_tls_ie_32:
+  case Sparc::fixup_sparc_tls_le_32:
+  case Sparc::fixup_sparc_got32:
   case FK_Data_1:
   case FK_Data_2:
   case FK_Data_4:
@@ -163,28 +169,34 @@ namespace {
         { "fixup_sparc_got22",     10,     22,  0 },
         { "fixup_sparc_got10",     22,     10,  0 },
         { "fixup_sparc_got13",     19,     13,  0 },
+        { "fixup_sparc_got32",      0,     32,  0 },
         { "fixup_sparc_wplt30",     2,     30,  MCFixupKindInfo::FKF_IsPCRel },
         { "fixup_sparc_tls_gd_hi22",   10, 22,  0 },
         { "fixup_sparc_tls_gd_lo10",   22, 10,  0 },
+        { "fixup_sparc_tls_gd_32",      0, 10,  0 },
         { "fixup_sparc_tls_gd_add",     0,  0,  0 },
         { "fixup_sparc_tls_gd_call",    0,  0,  0 },
         { "fixup_sparc_tls_ldm_hi22",  10, 22,  0 },
         { "fixup_sparc_tls_ldm_lo10",  22, 10,  0 },
+        { "fixup_sparc_tls_ldm_lo10",   0, 32,  0 },
         { "fixup_sparc_tls_ldm_add",    0,  0,  0 },
         { "fixup_sparc_tls_ldm_call",   0,  0,  0 },
         { "fixup_sparc_tls_ldo_hix22", 10, 22,  0 },
         { "fixup_sparc_tls_ldo_lox10", 22, 10,  0 },
+        { "fixup_sparc_tls_ldo_32",     0, 32,  0 },
         { "fixup_sparc_tls_ldo_add",    0,  0,  0 },
         { "fixup_sparc_tls_ie_hi22",   10, 22,  0 },
         { "fixup_sparc_tls_ie_lo10",   22, 10,  0 },
+        { "fixup_sparc_tls_ie_32",      0, 32,  0 },
         { "fixup_sparc_tls_ie_ld",      0,  0,  0 },
         { "fixup_sparc_tls_ie_ldx",     0,  0,  0 },
         { "fixup_sparc_tls_ie_add",     0,  0,  0 },
         { "fixup_sparc_tls_le_hix22",   0,  0,  0 },
         { "fixup_sparc_tls_le_lox10",   0,  0,  0 },
-        { "fixup_sparc_gdop",           0,  0,  0 },
+        { "fixup_sparc_tls_le_32",      0,  32, 0 },
         { "fixup_sparc_gdop_hix22",     0,  0,  0 },
         { "fixup_sparc_gdop_lox10",     0,  0,  0 },
+        { "fixup_sparc_gdop",           0,  0,  0 },
         { "fixup_sparc_32",             0,  32, 0 },
         { "fixup_sparc_pc32",           0,  32, MCFixupKindInfo::FKF_IsPCRel },
         { "fixup_sparc_br8",            8,   8, MCFixupKindInfo::FKF_IsPCRel },
@@ -230,9 +242,10 @@ namespace {
         { "fixup_sparc_tls_ie_add",     0,  0,  0 },
         { "fixup_sparc_tls_le_hix22",   0,  0,  0 },
         { "fixup_sparc_tls_le_lox10",   0,  0,  0 },
-        { "fixup_sparc_gdop",           0,  0,  0 },
+        { "fixup_sparc_tls_le_32",      0,  32, 0 },
         { "fixup_sparc_gdop_hix22",     0,  0,  0 },
         { "fixup_sparc_gdop_lox10",     0,  0,  0 },
+        { "fixup_sparc_gdop",           0,  0,  0 },
         { "fixup_sparc_32",             0,  32, 0 },
         { "fixup_sparc_pc32",           0,  32, MCFixupKindInfo::FKF_IsPCRel },
         { "fixup_sparc_br8",            0,   8, MCFixupKindInfo::FKF_IsPCRel },
@@ -277,6 +290,7 @@ namespace {
       case Sparc::fixup_sparc_tls_ie_add:
       case Sparc::fixup_sparc_tls_le_hix22:
       case Sparc::fixup_sparc_tls_le_lox10:
+      case Sparc::fixup_sparc_tls_le_32:
         return true;
       }
     }

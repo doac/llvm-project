@@ -70,28 +70,36 @@ namespace llvm {
       /// fixup_sparc_got13 - 13-bit fixup corresponding to %got13(foo)
       fixup_sparc_got13,
 
+      /// fixup_sparc_got32 - 32-bit fixup corresponding to %got32(foo)
+      fixup_sparc_got32,
+
       /// fixup_sparc_wplt30
       fixup_sparc_wplt30,
 
       /// fixups for Thread Local Storage
       fixup_sparc_tls_gd_hi22,
       fixup_sparc_tls_gd_lo10,
+      fixup_sparc_tls_gd_32,
       fixup_sparc_tls_gd_add,
       fixup_sparc_tls_gd_call,
       fixup_sparc_tls_ldm_hi22,
       fixup_sparc_tls_ldm_lo10,
+      fixup_sparc_tls_ldm_32,
       fixup_sparc_tls_ldm_add,
       fixup_sparc_tls_ldm_call,
       fixup_sparc_tls_ldo_hix22,
       fixup_sparc_tls_ldo_lox10,
+      fixup_sparc_tls_ldo_32,
       fixup_sparc_tls_ldo_add,
       fixup_sparc_tls_ie_hi22,
       fixup_sparc_tls_ie_lo10,
+      fixup_sparc_tls_ie_32,
       fixup_sparc_tls_ie_ld,
       fixup_sparc_tls_ie_ldx,
       fixup_sparc_tls_ie_add,
       fixup_sparc_tls_le_hix22,
       fixup_sparc_tls_le_lox10,
+      fixup_sparc_tls_le_32,
 
       /// fixups for GOTdata_op model
       fixup_sparc_gdop_hix22,

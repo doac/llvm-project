@@ -1993,6 +1993,14 @@ SDValue SparcTargetLowering::withTargetFlags(SDValue Op, unsigned TF,
   llvm_unreachable("Unhandled address SDNode");
 }
 
+SDValue SparcTargetLowering::makeREXConst32(SDValue Op, unsigned TF,
+                                            SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  EVT VT = Op.getValueType();
+  return DAG.getNode(SPISD::CONST32, DL, VT,
+                     withTargetFlags(Op, TF, DAG));
+}
+
 // Split Op into high and low parts according to HiTF and LoTF.
 // Return an ADD node combining the parts.
 SDValue SparcTargetLowering::makeHiLoPair(SDValue Op,
@@ -2023,14 +2031,18 @@ SDValue SparcTargetLowering::makeAddress(SDValue Op, SelectionDAG &DAG) const {
                         withTargetFlags(Op, SparcMCExpr::VK_Sparc_GOT13, DAG));
     } else {
       // This is the pic32 code model, the GOT is known to be smaller than 4GB.
-      Idx = makeHiLoPair(Op, SparcMCExpr::VK_Sparc_GOT22,
-                         SparcMCExpr::VK_Sparc_GOT10, DAG);
+      if (Subtarget->isREX())
+        Idx = makeREXConst32(Op, SparcMCExpr::VK_Sparc_GOT32, DAG);
+      else      
+        Idx = makeHiLoPair(Op, SparcMCExpr::VK_Sparc_GOT22,
+                           SparcMCExpr::VK_Sparc_GOT10, DAG);
     }
 
     SDValue GlobalBase = DAG.getNode(SPISD::GLOBAL_BASE_REG, DL, VT);
     SDValue AbsAddr = DAG.getNode(ISD::ADD, DL, VT, GlobalBase, Idx);
     // GLOBAL_BASE_REG codegen'ed with call. Inform MFI that this
     // function has calls.
+    // TODO NOT FOR REX
     MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
     MFI.setHasCalls(true);
     return DAG.getLoad(VT, DL, DAG.getEntryNode(), AbsAddr,
@@ -2044,8 +2056,7 @@ SDValue SparcTargetLowering::makeAddress(SDValue Op, SelectionDAG &DAG) const {
   case CodeModel::Small:
     // abs32.
     if (Subtarget->isREX())
-      return DAG.getNode(SPISD::CONST32, DL, VT,
-                         withTargetFlags(Op, SparcMCExpr::VK_Sparc_32, DAG));
+      return makeREXConst32(Op, SparcMCExpr::VK_Sparc_32, DAG);
     return makeHiLoPair(Op, SparcMCExpr::VK_Sparc_HI,
                         SparcMCExpr::VK_Sparc_LO, DAG);
   case CodeModel::Medium: {
@@ -2084,13 +2095,12 @@ SDValue SparcTargetLowering::LowerBlockAddress(SDValue Op,
   return makeAddress(Op, DAG);
 }
 
-SDValue SparcTargetLowering::getThreadPointerRegister(SelectionDAG &DAG) const {
+unsigned SparcTargetLowering::getThreadPointerRegister(SelectionDAG &DAG) const {
   const TargetRegisterInfo *TRI = Subtarget->getRegisterInfo();
   if (!TRI->getReservedRegs(DAG.getMachineFunction())[SP::G7])
     report_fatal_error("The TLS model requires register %g7");
 
-  EVT PtrVT = getPointerTy(DAG.getDataLayout());
-  return DAG.getRegister(SP::G7, PtrVT);
+  return SP::G7;
 }
 
 SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
@@ -2106,6 +2116,9 @@ SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
 
   TLSModel::Model model = getTargetMachine().getTLSModel(GV);
 
+  if (Subtarget->isREX() && model != TLSModel::LocalExec)
+    report_fatal_error("REX only supports the LocalExec TLS model");
+
   if (model == TLSModel::GeneralDynamic || model == TLSModel::LocalDynamic) {
     unsigned HiTF = ((model == TLSModel::GeneralDynamic)
                      ? SparcMCExpr::VK_Sparc_TLS_GD_HI22
@@ -2120,7 +2133,14 @@ SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
                        ? SparcMCExpr::VK_Sparc_TLS_GD_CALL
                        : SparcMCExpr::VK_Sparc_TLS_LDM_CALL);
 
-    SDValue HiLo = makeHiLoPair(Op, HiTF, LoTF, DAG);
+    SDValue HiLo;
+
+    if (Subtarget->isREX())
+      HiLo = makeREXConst32(Op, model == TLSModel::GeneralDynamic
+                            ? SparcMCExpr::VK_Sparc_TLS_GD_32
+                            : SparcMCExpr::VK_Sparc_TLS_LDM_32, DAG);
+    else    
+      HiLo = makeHiLoPair(Op, HiTF, LoTF, DAG);
     SDValue Base = DAG.getNode(SPISD::GLOBAL_BASE_REG, DL, PtrVT);
     SDValue Argument = DAG.getNode(SPISD::TLS_ADD, DL, PtrVT, Base, HiLo,
                                withTargetFlags(Op, addTF, DAG));
@@ -2154,11 +2174,15 @@ SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
     if (model != TLSModel::LocalDynamic)
       return Ret;
 
-    SDValue Hi = DAG.getNode(SPISD::Hi, DL, PtrVT,
-                 withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LDO_HIX22, DAG));
-    SDValue Lo = DAG.getNode(SPISD::Lo, DL, PtrVT,
-                 withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LDO_LOX10, DAG));
-    HiLo =  DAG.getNode(ISD::XOR, DL, PtrVT, Hi, Lo);
+    if (Subtarget->isREX())
+      HiLo = makeREXConst32(Op, SparcMCExpr::VK_Sparc_TLS_LDO_32, DAG);
+    else {
+      SDValue Hi = DAG.getNode(SPISD::Hi, DL, PtrVT,
+                   withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LDO_HIX22, DAG));
+      SDValue Lo = DAG.getNode(SPISD::Lo, DL, PtrVT,
+                   withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LDO_LOX10, DAG));
+      HiLo =  DAG.getNode(ISD::XOR, DL, PtrVT, Hi, Lo);
+    }
     return DAG.getNode(SPISD::TLS_ADD, DL, PtrVT, Ret, HiLo,
                    withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LDO_ADD, DAG));
   }
@@ -2170,32 +2194,48 @@ SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
     SDValue Base = DAG.getNode(SPISD::GLOBAL_BASE_REG, DL, PtrVT);
 
     // GLOBAL_BASE_REG codegen'ed with call. Inform MFI that this
-    // function has calls.
+    // function has calls. Not needed for REX.
     MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
-    MFI.setHasCalls(true);
+    if (!Subtarget->isREX())
+      MFI.setHasCalls(true);
 
-    SDValue TGA = makeHiLoPair(Op,
-                               SparcMCExpr::VK_Sparc_TLS_IE_HI22,
-                               SparcMCExpr::VK_Sparc_TLS_IE_LO10, DAG);
+    SDValue TGA;
+    if (Subtarget->isREX())
+      TGA = makeREXConst32(Op, SparcMCExpr::VK_Sparc_TLS_IE_32, DAG);
+    else
+      TGA = makeHiLoPair(Op,
+                         SparcMCExpr::VK_Sparc_TLS_IE_HI22,
+                         SparcMCExpr::VK_Sparc_TLS_IE_LO10, DAG);
     SDValue Ptr = DAG.getNode(ISD::ADD, DL, PtrVT, Base, TGA);
     SDValue Offset = DAG.getNode(SPISD::TLS_LD,
                                  DL, PtrVT, Ptr,
                                  withTargetFlags(Op, ldTF, DAG));
     return DAG.getNode(SPISD::TLS_ADD, DL, PtrVT,
-                       getThreadPointerRegister(DAG), Offset,
+                       DAG.getCopyFromReg(DAG.getEntryNode(), DL,
+                                          getThreadPointerRegister(DAG), PtrVT),
+                       Offset,
                        withTargetFlags(Op,
                                        SparcMCExpr::VK_Sparc_TLS_IE_ADD, DAG));
   }
 
   assert(model == TLSModel::LocalExec);
-  SDValue Hi = DAG.getNode(SPISD::Hi, DL, PtrVT,
-                  withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LE_HIX22, DAG));
-  SDValue Lo = DAG.getNode(SPISD::Lo, DL, PtrVT,
-                  withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LE_LOX10, DAG));
-  SDValue Offset =  DAG.getNode(ISD::XOR, DL, PtrVT, Hi, Lo);
+  SDValue Offset;
+
+  // Do we need XOR for vx64?
+  if (Subtarget->isREX())
+    Offset = makeREXConst32(Op, SparcMCExpr::VK_Sparc_TLS_LE_32, DAG);
+  else {
+    SDValue Hi = DAG.getNode(SPISD::Hi, DL, PtrVT,
+                             withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LE_HIX22, DAG));
+    SDValue Lo = DAG.getNode(SPISD::Lo, DL, PtrVT,
+                             withTargetFlags(Op, SparcMCExpr::VK_Sparc_TLS_LE_LOX10, DAG));
+    Offset = DAG.getNode(ISD::XOR, DL, PtrVT, Hi, Lo);
+  }
 
   return DAG.getNode(ISD::ADD, DL, PtrVT,
-                     getThreadPointerRegister(DAG), Offset);
+                     DAG.getCopyFromReg(DAG.getEntryNode(), DL,
+                                        getThreadPointerRegister(DAG), PtrVT),
+                     Offset);
 }
 
 SDValue SparcTargetLowering::LowerF128_LibCallArg(SDValue Chain,
@@ -3106,7 +3146,8 @@ SDValue SparcTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
   switch (IntNo) {
   default: return SDValue();    // Don't custom lower most intrinsics.
   case Intrinsic::thread_pointer:
-    return getThreadPointerRegister(DAG);
+    return DAG.getRegister(getThreadPointerRegister(DAG),
+                           getPointerTy(DAG.getDataLayout()));
   }
 }
 
