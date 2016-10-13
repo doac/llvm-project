@@ -38,6 +38,55 @@ SparcFrameLowering::SparcFrameLowering(const SparcSubtarget &ST)
     : TargetFrameLowering(TargetFrameLowering::StackGrowsDown,
                           ST.is64Bit() ? 16 : 8, 0, ST.is64Bit() ? 16 : 8) {}
 
+static void emitSPAdjustmentRex(MachineFunction &MF, MachineBasicBlock &MBB,
+                                MachineBasicBlock::iterator MBBI,
+                                const SparcInstrInfo &TII, int NumBytes) {
+  DebugLoc dl;
+
+  if (NumBytes >= -64 && NumBytes < 64) {
+    BuildMI(MBB, MBBI, dl, TII.get(SP::ADDri), SP::O6)
+        .addReg(SP::O6)
+        .addImm(NumBytes);
+    return;
+  }
+
+  SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
+  unsigned DstReg =
+      MF.getRegInfo().createVirtualRegister(&SP::RexIntRegsRegClass);
+  if (FuncInfo->isLeafProc())
+    MF.getRegInfo().constrainRegClass(DstReg, &SP::LeafRegsRegClass);
+
+  if (isInt<21>(NumBytes))
+    BuildMI(MBB, MBBI, dl, TII.get(SP::RSET21), DstReg).addImm(NumBytes);
+  else
+    BuildMI(MBB, MBBI, dl, TII.get(SP::RSET32), DstReg).addImm(NumBytes);
+
+  BuildMI(MBB, MBBI, dl, TII.get(SP::ADDrr), SP::O6)
+      .addReg(DstReg, RegState::Kill)
+      .addReg(SP::O6);
+}
+
+static void emitPrologueSPAdjustmentREX(MachineFunction &MF,
+                                        MachineBasicBlock &MBB,
+                                        MachineBasicBlock::iterator MBBI,
+                                        int NumBytes, bool isLeaf) {
+
+  DebugLoc dl;
+  const SparcInstrInfo &TII =
+      *static_cast<const SparcInstrInfo *>(MF.getSubtarget().getInstrInfo());
+
+  assert(NumBytes < 0);
+
+  BuildMI(MBB, MBBI, dl, TII.get(isLeaf ? SP::ADDREX : SP::SAVEREX), SP::O6)
+      .addReg(SP::O6)
+      .addImm(std::max(-4096, NumBytes));
+
+  if (NumBytes >= -4096)
+    return;
+
+  emitSPAdjustmentRex(MF, MBB, MBBI, TII, NumBytes + 4096);
+}
+
 void SparcFrameLowering::emitSPAdjustment(MachineFunction &MF,
                                           MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator MBBI,
@@ -47,8 +96,14 @@ void SparcFrameLowering::emitSPAdjustment(MachineFunction &MF,
 
   DebugLoc dl;
   unsigned ScratchReg;
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
   const SparcInstrInfo &TII =
       *static_cast<const SparcInstrInfo *>(MF.getSubtarget().getInstrInfo());
+
+  if ((Subtarget.isREX())) {
+    emitSPAdjustmentRex(MF, MBB, MBBI, TII, NumBytes);
+    return;
+  }
 
   if (NumBytes >= -4096 && NumBytes < 4096) {
     BuildMI(MBB, MBBI, dl, TII.get(ADDri), SP::O6)
@@ -125,8 +180,13 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   if (FuncInfo->isLeafProc()) {
-    if (NumBytes == 0)
+    if (NumBytes == 0) {
+      if (Subtarget.isREX())
+        BuildMI(MBB, MBBI, dl, TII.get(SP::ADDREX), SP::G0)
+            .addReg(SP::G0)
+            .addImm(-1);
       return;
+    }
     SAVEri = SP::ADDri;
     SAVErr = SP::ADDrr;
   }
@@ -163,7 +223,11 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
   // Update stack size with corrected value.
   MFI.setStackSize(NumBytes);
 
-  emitSPAdjustment(MF, MBB, MBBI, -NumBytes, SAVErr, SAVEri);
+  if (Subtarget.isREX())
+    emitPrologueSPAdjustmentREX(MF, MBB, MBBI, -NumBytes,
+                                FuncInfo->isLeafProc());
+  else
+    emitSPAdjustment(MF, MBB, MBBI, -NumBytes, SAVErr, SAVEri);
 
   if (!Subtarget.useFlatRegisterMode()) {
     unsigned regFP = RegInfo.getDwarfRegNum(SP::I6, true);
@@ -250,8 +314,18 @@ void SparcFrameLowering::emitEpilogue(MachineFunction &MF,
   }
 
   assert((MBBI->getOpcode() == SP::RETL || MBBI->getOpcode() == SP::TAIL_CALL ||
-          MBBI->getOpcode() == SP::TAIL_CALLri) &&
+          MBBI->getOpcode() == SP::TAIL_CALLri || Subtarget.isREX()) &&
          "Can only put epilog before 'retl' or 'tail_call' instruction!");
+
+  if ((Subtarget.isREX())) {
+
+    if (!FuncInfo->isLeafProc())
+      return;
+
+    BuildMI(MBB, MBBI, dl, TII.get(SP::RRETL)).addImm(0).copyImplicitOps(*MBBI);
+    MBB.erase(MBBI);
+    MBBI = MBB.getLastNonDebugInstr();
+  }
 
   if (!FuncInfo->isLeafProc()) {
     BuildMI(MBB, MBBI, dl, TII.get(SP::RESTORErr), SP::G0).addReg(SP::G0)

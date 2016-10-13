@@ -649,6 +649,8 @@ let Predicates = [IsREX], AddedComplexity = 60 in {
 
 def : Pat<(add i32:$rs, simm5:$imm5), (RADDCCi i32:$rs, simm5:$imm5)>;
 
+def : Pat<(retflag  imm5:$imm), (RRETREST imm5:$imm)>;
+
 }
 
 // Alias
