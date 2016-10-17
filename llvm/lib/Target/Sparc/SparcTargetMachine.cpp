@@ -134,6 +134,16 @@ SparcTargetMachine::getSubtargetImpl(const Function &F) const {
   if (softFloat)
     FS += FS.empty() ? "+soft-float" : ",+soft-float";
 
+  bool hasRexAttr =
+    !F.getFnAttribute("rex").hasAttribute(Attribute::None);
+  bool hasNoRexAttr =
+    !F.getFnAttribute("norex").hasAttribute(Attribute::None);
+
+  if (hasRexAttr)
+    FS += FS.empty() ? "+rex" : ",+rex";
+  else if (hasNoRexAttr)
+    FS += FS.empty() ? "-rex" : ",-rex";
+
   auto &I = SubtargetMap[CPU + FS];
   if (!I) {
     // This needs to be done before we create a new subtarget since any
