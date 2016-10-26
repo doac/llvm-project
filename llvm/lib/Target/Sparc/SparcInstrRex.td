@@ -240,6 +240,8 @@ def Imm32Op  : Operand<iPTR> { let EncoderMethod = "getImm32OpValue";   }
 
 // Leaf patterns
 
+def imm32  : ImmLeaf<i32, [{}]>;
+def simm21 : ImmLeaf<i32, [{ return isInt<21>(Imm);      }]>;
 def imm5   : ImmLeaf<i32, [{ return isUInt<5>(Imm);      }]>;
 def simm5  : ImmLeaf<i32, [{ return isInt<5>(Imm);       }]>;
 def pow2   : ImmLeaf<i32, [{ return isPowerOf2_32(Imm);  }], Log2>;
@@ -394,9 +396,9 @@ class RexConstant<string OpcStr, bits<4> op3val,
             pattern>;
 
 def RSET5 : RexConstant<"rset5", 0b0001, SImm5Op,
-                        []>;
+                        [(set i32:$rd, (i32 simm5:$imm5))]>;
 def RONE  : RexConstant<"rone",  0b0101, Imm5Op,
-                        []>;
+                        [(set i32:$rd, (i32 pow2:$imm5))]>;
 
 // Section 6.3.8 - Bit-mask operations
 
@@ -608,7 +610,7 @@ def BINDr : F3_2<2, 0b111000,
 def RSET21 : InstRex32<(outs RexIntRegsOp:$rd),
                        (ins SImm21Op:$imm21 ),
                        "rset21\t$imm21, $rd",
-                       []> {
+                       [(set i32:$rd, (i32 simm21:$imm21))]> {
   bits<4> rd;
   bits<21> imm21;
   let op          = 0b10;
@@ -627,7 +629,7 @@ def RSET21 : InstRex32<(outs RexIntRegsOp:$rd),
 
 def RSET32   : InstRex48<"rset32\t$imm32, $rd",    0b01000,
                          Imm32Op, RexIntRegsOp,
-                         []>;
+                         [(set i32:$rd, (i32 imm32:$imm32))]>;
 def RSET32PC : InstRex48<"rset32pc $imm32, $rd",  0b01001,
                          Imm32Op, RexIntRegsOp,
                          []>;
