@@ -78,6 +78,11 @@ bool SparcDAGToDAGISel::SelectADDRr(SDValue Addr, SDValue &Base) {
   if (isa<FrameIndexSDNode>(Addr))
     return false;
 
+  // Leave constants larger than 21 bits to rld32
+  if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr))
+    if (!isInt<21>(CN->getSExtValue()))
+      return false;
+
   // Check if ISD::ADD or equivalent ISD::OR
   if (CurDAG->isBaseWithConstantOffset(Addr)) {
     if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1)))
