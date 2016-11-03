@@ -3542,6 +3542,16 @@ SparcTargetLowering::isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const {
   return false;
 }
 
+bool
+SparcTargetLowering::isLegalICmpImmediate(int64_t Imm) const {
+  return Subtarget->isREX() ? isInt<5>(Imm) : isInt<13>(Imm);
+}
+
+bool
+SparcTargetLowering::isLegalAddImmediate(int64_t Imm) const {
+  return Subtarget->isREX() ? isInt<5>(Imm) : isInt<13>(Imm);
+}
+
 void SparcTargetLowering::ReplaceNodeResults(SDNode *N,
                                              SmallVectorImpl<SDValue>& Results,
                                              SelectionDAG &DAG) const {

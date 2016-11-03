@@ -163,16 +163,12 @@ namespace llvm {
     /// the target has icmp instructions which can compare a register against
     /// the immediate without having to materialize the immediate into a
     /// register.
-    bool isLegalICmpImmediate(int64_t val) const override {
-      return isInt<13>(val);
-    }
+    bool isLegalICmpImmediate(int64_t val) const override;
 
     /// Return true if the specified immediate is legal add immediate, that is
     /// the target has add instructions which can add a register with the
     /// immediate without having to materialize the immediate into a register.
-    bool isLegalAddImmediate(int64_t val) const override {
-      return isInt<13>(val);
-    }
+    bool isLegalAddImmediate(int64_t val) const override;
 
     /// Return true if it is beneficial to convert a load of a constant to
     /// just the constant itself.
