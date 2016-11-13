@@ -674,6 +674,14 @@ def : Pat<(i32 (extloadi1 RexIntRegs:$src)),  (RLDUBr RexIntRegs:$src)>;
 def : Pat<(i32 (extloadi8 RexIntRegs:$rs)),   (RLDUBr RexIntRegs:$rs)>;
 def : Pat<(i32 (extloadi16 RexIntRegs:$rs)),  (RLDUHr RexIntRegs:$rs)>;
 
+def : Pat<(i32 (atomic_load_8  RexIntRegs:$src)), (RLDUBr RexIntRegs:$src)>;
+def : Pat<(i32 (atomic_load_16 RexIntRegs:$src)), (RLDUHr RexIntRegs:$src)>;
+def : Pat<(i32 (atomic_load_32 RexIntRegs:$src)), (RLDr   RexIntRegs:$src)>;
+
+def : Pat<(atomic_store_8  RexIntRegs:$dst, i32:$val), (RSTBr RexIntRegs:$dst, $val)>;
+def : Pat<(atomic_store_16 RexIntRegs:$dst, i32:$val), (RSTHr RexIntRegs:$dst, $val)>;
+def : Pat<(atomic_store_32 RexIntRegs:$dst, i32:$val), (RSTr  RexIntRegs:$dst, $val)>;
+
 // extract_vector
 def : Pat<(extractelt (v2i32 RexIntPair:$Rn), 0),
           (i32 (EXTRACT_SUBREG RexIntPair:$Rn, sub_even))>;
