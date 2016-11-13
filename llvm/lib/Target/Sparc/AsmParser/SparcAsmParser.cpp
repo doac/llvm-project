@@ -613,6 +613,23 @@ bool SparcAsmParser::expandSET(MCInst &Inst, SMLoc IDLoc,
                  "set: argument must be between -2147483648 and 4294967295");
   }
 
+  if (isREX()) {
+    MCInst TmpInst;
+    const MCExpr *ValExpr;
+
+    if (IsImm)
+      ValExpr = MCConstantExpr::create(RawImmValue, getContext());
+    else
+      ValExpr = SparcMCExpr::create(SparcMCExpr::VK_Sparc_32, MCValOp.getExpr(), getContext());
+
+    TmpInst.setLoc(IDLoc);
+    TmpInst.setOpcode(SP::RSET32);
+    TmpInst.addOperand(MCRegOp);
+    TmpInst.addOperand(MCOperand::createExpr(ValExpr));
+    Instructions.push_back(TmpInst);
+    return false;
+  }
+
   // If the value was expressed as a large unsigned number, that's ok.
   // We want to see if it "looks like" a small signed number.
   int32_t ImmValue = RawImmValue;
