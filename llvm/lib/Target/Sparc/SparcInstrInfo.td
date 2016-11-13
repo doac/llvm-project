@@ -77,6 +77,8 @@ def UseDeprecatedInsts : Predicate<"Subtarget->useDeprecatedV8Instructions()">;
 
 // True when generating code using the REX instruction set extension.
 def IsREX : Predicate<"Subtarget->isREX()">;
+def IsNotREX : Predicate<"!Subtarget->isREX()">,
+               AssemblerPredicate<"!FeatureREX">;
 
 //===----------------------------------------------------------------------===//
 // Instruction Pattern Stuff
@@ -646,7 +648,7 @@ let Constraints = "$val = $dst", DecoderMethod = "DecodeSWAP" in {
 
 
 // Section B.9 - SETHI Instruction, p. 104
-let isReMaterializable = 1 in
+let isReMaterializable = 1, Predicates=[IsNotREX] in
 def SETHIi: F2_1<0b100,
                  (outs IntRegs:$rd), (ins i32imm:$imm22),
                  "sethi $imm22, $rd",
@@ -655,7 +657,7 @@ def SETHIi: F2_1<0b100,
 
 // Section B.10 - NOP Instruction, p. 105
 // (It's a special case of SETHI)
-let rd = 0, imm22 = 0 in
+let rd = 0, imm22 = 0, Predicates=[IsNotREX] in
   def NOP : F2_1<0b100, (outs), (ins), "nop", []>;
 
 // Section B.11 - Logical Instructions, p. 106
