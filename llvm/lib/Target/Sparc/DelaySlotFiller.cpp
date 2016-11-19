@@ -160,6 +160,11 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB,
         continue;
       }
 
+      if (MI->getOpcode() == SP::CASAasi10) {
+        BuildMI(MBB, MI, MI->getDebugLoc(), TII->get(SP::RLEAVE));
+        BuildMI(MBB, I,  MI->getDebugLoc(), TII->get(SP::ADDREX), SP::G0).addReg(SP::G0).addImm(-1);
+        Changed = true;
+      }
       continue;
     }
 
