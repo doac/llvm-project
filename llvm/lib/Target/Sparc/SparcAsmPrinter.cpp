@@ -268,6 +268,12 @@ void SparcAsmPrinter::EmitInstruction(const MachineInstr *MI)
   case SP::GETPCX:
     LowerGETPCXAndEmitMCInsts(MI, getSubtargetInfo());
     return;
+  case SP::RLEAVE:
+      MCInst RNOPInst;
+      RNOPInst.setOpcode(SP::RNOP);
+      OutStreamer->EmitCodeAlignment(4);
+      EmitToStreamer(*OutStreamer, RNOPInst);
+      break;
   }
   MachineBasicBlock::const_instr_iterator I = MI->getIterator();
   MachineBasicBlock::const_instr_iterator E = MI->getParent()->instr_end();
