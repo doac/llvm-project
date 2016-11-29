@@ -107,6 +107,9 @@ class SparcAsmParser : public MCTargetAsmParser {
   bool expandSET(MCInst &Inst, SMLoc IDLoc,
                  SmallVectorImpl<MCInst> &Instructions);
 
+  bool addREXRel(SparcMCExpr::VariantKind VK, MCInst &Inst, SMLoc IDLoc,
+                 SmallVectorImpl<MCInst> &Instructions);
+
 public:
   SparcAsmParser(const MCSubtargetInfo &sti, MCAsmParser &parser,
                 const MCInstrInfo &MII,
@@ -687,6 +690,20 @@ bool SparcAsmParser::expandSET(MCInst &Inst, SMLoc IDLoc,
   return false;
 }
 
+bool SparcAsmParser::addREXRel(SparcMCExpr::VariantKind VK, MCInst &Inst, SMLoc IDLoc,
+                               SmallVectorImpl<MCInst> &Instructions) {
+
+  MCOperand &EVal = Inst.getOperand(1);
+  if (EVal.isExpr()) {
+    if (!isa<SparcMCExpr>(EVal.getExpr()))
+      EVal.setExpr(SparcMCExpr::create(VK, EVal.getExpr(), getContext()));
+  }
+  Inst.setLoc(IDLoc);
+  Instructions.push_back(Inst);
+
+  return false;
+}
+
 bool SparcAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
                                              OperandVector &Operands,
                                              MCStreamer &Out,
@@ -702,6 +719,16 @@ bool SparcAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
     default:
       Inst.setLoc(IDLoc);
       Instructions.push_back(Inst);
+      break;
+    case SP::RLD32:
+    case SP::RSET32:
+      if (addREXRel(SparcMCExpr::VK_Sparc_32, Inst, IDLoc, Instructions))
+        return true;
+      break;
+    case SP::RLD32PC:
+    case SP::RSET32PC:
+      if (addREXRel(SparcMCExpr::VK_Sparc_R_DISP32, Inst, IDLoc, Instructions))
+        return true;
       break;
     case SP::SET:
       if (expandSET(Inst, IDLoc, Instructions))

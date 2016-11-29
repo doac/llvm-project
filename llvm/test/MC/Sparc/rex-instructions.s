@@ -538,9 +538,9 @@
        ! CHECK: rset32pc 50000, %l4  ! encoding: [0x93,0xe9,0x00,0x00,0xc3,0x50]
         rset32pc 50000, %l4
 
-        ! CHECK: rset32pc foo, %l4     ! encoding: [0x93,0xe9,A,A,A,A]
+        ! CHECK: rset32pc %r_disp32(foo), %l4     ! encoding: [0x93,0xe9,A,A,A,A]
                    !   fixup A - offset: 2, value: foo, kind: fixup_sparc_disp32
-        rset32pc foo, %l4
+        rset32pc %r_disp32(foo), %l4
 
 // Section 6.5.2 - Load from 32-bit address
 
@@ -554,7 +554,7 @@
        ! CHECK: rld32pc [50000], %l4 ! encoding: [0x93,0xeb,0x00,0x00,0xc3,0x50]
         rld32pc [50000], %l4
 
-        ! CHECK: rld32pc [foo], %l4  ! encoding: [0x93,0xeb,A,A,A,A]
+        ! CHECK: rld32pc [%r_disp32(foo)], %l4  ! encoding: [0x93,0xeb,A,A,A,A]
                    !   fixup A - offset: 2, value: foo, kind: fixup_sparc_disp32
-        rld32pc [foo], %l4
+        rld32pc [%r_disp32(foo)], %l4
 
