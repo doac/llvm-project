@@ -4,7 +4,7 @@
 define i32 @test_andn(i32 %x) nounwind {
 ; SPARC-LABEL: test_andn:
 ; SPARC:       ! %bb.0: ! %entry
-; SPARC-NEXT:    sethi 4194272, %o1
+; SPARC-NEXT:    sethi %hi(0xffff8000), %o1
 ; SPARC-NEXT:    retl
 ; SPARC-NEXT:    andn %o0, %o1, %o0
 entry:
@@ -15,7 +15,7 @@ entry:
 define i32 @test_orn(i32 %x) nounwind {
 ; SPARC-LABEL: test_orn:
 ; SPARC:       ! %bb.0: ! %entry
-; SPARC-NEXT:    sethi 4194272, %o1
+; SPARC-NEXT:    sethi %hi(0xffff8000), %o1
 ; SPARC-NEXT:    retl
 ; SPARC-NEXT:    orn %o0, %o1, %o0
 entry:
@@ -28,7 +28,7 @@ entry:
 define i32 @test_used_more_than_once(i32 %x) nounwind {
 ; SPARC-LABEL: test_used_more_than_once:
 ; SPARC:       ! %bb.0: ! %entry
-; SPARC-NEXT:    sethi 31, %o1
+; SPARC-NEXT:    sethi %hi(0x7c00), %o1
 ; SPARC-NEXT:    or %o1, 1023, %o1
 ; SPARC-NEXT:    or %o0, %o1, %o2
 ; SPARC-NEXT:    and %o0, %o1, %o0

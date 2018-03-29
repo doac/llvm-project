@@ -92,7 +92,7 @@ foo:
 ! Initial Executable model:
 !     IE_HI22/IE_LO10/IE_LD (or IE_LDX)/IE_ADD
 
-! OBJDUMP: {{[0-9,a-f]+}}:  33 00 00 00  sethi 0, %i1
+! OBJDUMP: {{[0-9,a-f]+}}:  33 00 00 00  sethi %hi(0x0), %i1
 ! OBJDUMP: {{[0-9,a-f]+}}:     R_SPARC_TLS_IE_HI22 Extern
 ! ASM: sethi %tie_hi22(Extern), %i1 ! encoding: [0x33,0b00AAAAAA,A,A]
 ! ASM:                                    !   fixup A - offset: 0, value: %tie_hi22(Extern), kind: fixup_sparc_tls_ie_hi22

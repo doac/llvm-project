@@ -77,29 +77,29 @@ entry:
 ; CHECK:       sll %o3, %o1, %o5
 ; CHECK:       xor %o5, -1, %o3
 ; CHECK:       mov  123, %o4
-; CHECK:       ld [%o2], %g2
+; CHECK:       ld [%o2], %g1
 ; CHECK:       sll %o4, %o1, %o4
 ; CHECK:       and %o0, 255, %o0
 ; CHECK:       sll %o0, %o1, %o0
-; CHECK:       andn %g2, %o5, %g2
-; CHECK:       mov %g0, %o5
+; CHECK:       andn %g1, %o5, %g1
+; CHECK:       mov 0, %o5
 ; CHECK:      [[LABEL1:\.L.*]]:
-; CHECK:       or %g2, %o4, %g3
-; CHECK:       or %g2, %o0, %g4
-; CHECK:       cas [%o2], %g4, %g3
-; CHECK:       cmp %g3, %g4
-; CHECK:       mov  %o5, %g4
-; CHECK:       move %icc, 1, %g4
-; CHECK:       cmp %g4, 0
+; CHECK:       or %g1, %o4, %g2
+; CHECK:       or %g1, %o0, %g3
+; CHECK:       cas [%o2], %g3, %g2
+; CHECK:       cmp %g2, %g3
+; CHECK:       mov  %o5, %g3
+; CHECK:       move %icc, 1, %g3
+; CHECK:       cmp %g3, 0
 ; CHECK:       bne  [[LABEL2:\.L.*]]
 ; CHECK:       nop
-; CHECK:       and %g3, %o3, %g4
-; CHECK:       cmp %g2, %g4
+; CHECK:       and %g2, %o3, %g3
+; CHECK:       cmp %g1, %g3
 ; CHECK:       bne  [[LABEL1]]
-; CHECK:       mov  %g4, %g2
+; CHECK:       mov  %g3, %g1
 ; CHECK:      [[LABEL2]]:
 ; CHECK:       retl
-; CHECK:       srl %g3, %o1, %o0
+; CHECK:       srl %g2, %o1, %o0
 define i8 @test_cmpxchg_i8(i8 %a, i8* %ptr) {
 entry:
   %pair = cmpxchg i8* %ptr, i8 %a, i8 123 monotonic monotonic
@@ -118,29 +118,29 @@ entry:
 ; CHECK:       sll %o4, %o1, %o5
 ; CHECK:       xor %o5, -1, %o3
 ; CHECK:       and %o0, %o4, %o4
-; CHECK:       ld [%o2], %g2
+; CHECK:       ld [%o2], %g1
 ; CHECK:       mov  123, %o0
 ; CHECK:       sll %o0, %o1, %o0
 ; CHECK:       sll %o4, %o1, %o4
-; CHECK:       andn %g2, %o5, %g2
-; CHECK:       mov %g0, %o5
+; CHECK:       andn %g1, %o5, %g1
+; CHECK:       mov 0, %o5
 ; CHECK:      [[LABEL1:\.L.*]]:
-; CHECK:       or %g2, %o0, %g3
-; CHECK:       or %g2, %o4, %g4
-; CHECK:       cas [%o2], %g4, %g3
-; CHECK:       cmp %g3, %g4
-; CHECK:       mov  %o5, %g4
-; CHECK:       move %icc, 1, %g4
-; CHECK:       cmp %g4, 0
+; CHECK:       or %g1, %o0, %g2
+; CHECK:       or %g1, %o4, %g3
+; CHECK:       cas [%o2], %g3, %g2
+; CHECK:       cmp %g2, %g3
+; CHECK:       mov  %o5, %g3
+; CHECK:       move %icc, 1, %g3
+; CHECK:       cmp %g3, 0
 ; CHECK:       bne  [[LABEL2:\.L.*]]
 ; CHECK:       nop
-; CHECK:       and %g3, %o3, %g4
-; CHECK:       cmp %g2, %g4
+; CHECK:       and %g2, %o3, %g3
+; CHECK:       cmp %g1, %g3
 ; CHECK:       bne  [[LABEL1]]
-; CHECK:       mov  %g4, %g2
+; CHECK:       mov  %g3, %g1
 ; CHECK:      [[LABEL2]]:
 ; CHECK:       retl
-; CHECK:       srl %g3, %o1, %o0
+; CHECK:       srl %g2, %o1, %o0
 define i16 @test_cmpxchg_i16(i16 %a, i16* %ptr) {
 entry:
   %pair = cmpxchg i16* %ptr, i16 %a, i16 123 monotonic monotonic
@@ -235,7 +235,7 @@ entry:
 
 ; CHECK-LABEL: test_load_add_i32
 ; CHECK: membar
-; CHECK: mov %g0
+; CHECK: mov 0
 ; CHECK: mov [[U:%[gilo][0-7]]], [[V:%[gilo][0-7]]]
 ; CHECK: add [[U:%[gilo][0-7]]], %o1, [[V2:%[gilo][0-7]]]
 ; CHECK: cas [%o0], [[V]], [[V2]]

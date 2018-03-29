@@ -1,4 +1,3 @@
-; RUN: llc %s -O0 -march=sparc -mcpu=ut699 -o - | FileCheck %s
 ; RUN: llc %s -O0 -march=sparc -mcpu=leon3 -mattr=+insertnopload -o - | FileCheck %s
 
 ; CHECK-LABEL: ld_float_test

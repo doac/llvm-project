@@ -7,7 +7,7 @@ define i32 @zero() nounwind {
 ; SPARC-LABEL: zero:
 ; SPARC:       ! %bb.0:
 ; SPARC-NEXT:    retl
-; SPARC-NEXT:    mov %g0, %o0
+; SPARC-NEXT:    mov 0, %o0
 ret i32 0
 }
 

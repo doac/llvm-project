@@ -157,7 +157,7 @@ entry:
 ;CHECK: restore %g0, 3072, %o0
   %0 = tail call i32 @bar(i32 %a) nounwind
   %1 = icmp ne i32 %0, 0
-  %2 = select i1 %1, i32 3072, i32 0
+  %2 = select i1 %1, i32 3072, i32 1
   ret i32 %2
 }
 
@@ -168,7 +168,7 @@ entry:
 ;CHECK-NOT: restore %g0, 6144, %o0
   %0 = tail call i32 @bar(i32 %a) nounwind
   %1 = icmp ne i32 %0, 0
-  %2 = select i1 %1, i32 6144, i32 0
+  %2 = select i1 %1, i32 6144, i32 1
   ret i32 %2
 }
 
@@ -180,7 +180,7 @@ entry:
 ;CHECK:     restore
   %0 = tail call i32 @bar(i32 %a) nounwind
   %1 = icmp ne i32 %0, 0
-  %2 = select i1 %1, i32 4096000, i32 0
+  %2 = select i1 %1, i32 4096000, i32 1
   ret i32 %2
 }
 

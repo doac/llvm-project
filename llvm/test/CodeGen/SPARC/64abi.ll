@@ -466,12 +466,11 @@ entry:
 ; CHECK-LABEL: test_large_stack:
 
 ; CHECK:       sethi %hi(0x4000), %g1
-; CHECK:       xor %g1, -176, %g1
+; CHECK:       xor %g1, -192, %g1
 ; CHECK:       save %sp, %g1, %sp
 
-; CHECK:       sethi %hi(0x3800), %g1
-; CHECK:       xor %g1, -1, %g1
-; CHECK:       add %g1, %fp, %g1
+; CHECK:       sethi %hi(0x4000), %o0
+; CHECK:       add %sp, 2239, %o1
 ; CHECK:       call use_buf
 
 define i32 @test_large_stack() {
