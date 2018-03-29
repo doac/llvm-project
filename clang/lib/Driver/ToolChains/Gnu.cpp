@@ -2508,8 +2508,8 @@ bool Generic_GCC::IsIntegratedAssemblerDefault() const {
   case llvm::Triple::mips64:
   case llvm::Triple::mips64el:
   case llvm::Triple::msp430:
-    return true;
   case llvm::Triple::sparc:
+    return true;
   case llvm::Triple::sparcel:
   case llvm::Triple::sparcv9:
     if (getTriple().isOSSolaris() || getTriple().isOSOpenBSD())
