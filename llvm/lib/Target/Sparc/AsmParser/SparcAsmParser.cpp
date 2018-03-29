@@ -1331,6 +1331,12 @@ unsigned SparcAsmParser::validateTargetOperandClass(MCParsedAsmOperand &GOp,
   if (Op.isCoprocReg() && Kind == MCK_CoprocPair) {
      if (SparcOperand::MorphToCoprocPairReg(Op))
        return MCTargetAsmParser::Match_Success;
-   }
+  }
+
+  if (Kind == MCK_0 && Op.isImm())
+      if (const MCConstantExpr *CE = dyn_cast<MCConstantExpr>(Op.getImm()))
+          if (CE->getValue() == 0)
+              return Match_Success;
+
   return Match_InvalidOperand;
 }

@@ -479,6 +479,8 @@ def : InstAlias<"flush", (FLUSH), 0>;
 // unimp -> unimp 0
 def : InstAlias<"unimp", (UNIMP 0), 0>;
 
+def : InstAlias<"call $disp, 0", (CALL calltarget:$disp), 0>;
+
 def : MnemonicAlias<"iflush", "flush">;
 
 def : MnemonicAlias<"stub", "stb">;

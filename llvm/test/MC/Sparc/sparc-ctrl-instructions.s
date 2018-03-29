@@ -5,6 +5,9 @@
         ! CHECK:              !   fixup A - offset: 0, value: foo, kind: fixup_sparc_call30
         call foo
 
+        ! CHECK: call foo     ! encoding: [0b01AAAAAA,A,A,A]
+        call foo, 0
+
         ! CHECK: call %g1+%i2 ! encoding: [0x9f,0xc0,0x40,0x1a]
         call %g1 + %i2
 
