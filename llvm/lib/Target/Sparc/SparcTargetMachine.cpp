@@ -25,6 +25,10 @@ extern "C" void LLVMInitializeSparcTarget() {
   RegisterTargetMachine<SparcV8TargetMachine> X(getTheSparcTarget());
   RegisterTargetMachine<SparcV9TargetMachine> Y(getTheSparcV9Target());
   RegisterTargetMachine<SparcelTargetMachine> Z(getTheSparcelTarget());
+
+  auto &PR = *PassRegistry::getPassRegistry();
+  initializeFillerPass(PR);
+  initializeErrataWorkaroundPass(PR);
 }
 
 static std::string computeDataLayout(const Triple &T, bool is64Bit) {
@@ -171,7 +175,9 @@ bool SparcPassConfig::addInstSelector() {
   return false;
 }
 
-void SparcPassConfig::addPreEmitPass(){
+void SparcPassConfig::addPreEmitPass() {
+  const SparcSubtarget *ST = getSparcTargetMachine().getSubtargetImpl();
+
   addPass(createSparcDelaySlotFillerPass());
 
   if (this->getSparcTargetMachine().getSubtargetImpl()->insertNOPLoad())
@@ -185,6 +191,9 @@ void SparcPassConfig::addPreEmitPass(){
   {
     addPass(new FixAllFDIVSQRT());
   }
+
+  if (ST->fixTN0009() || ST->fixTN0011() || ST->fixTN0012() || ST->fixTN0013())
+    addPass(createErrataWorkaroundPass());
 }
 
 void SparcV8TargetMachine::anchor() { }

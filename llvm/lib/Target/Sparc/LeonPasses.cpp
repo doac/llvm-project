@@ -19,7 +19,255 @@
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/raw_ostream.h"
+
 using namespace llvm;
+
+struct ErrataWorkaround : public MachineFunctionPass {
+  const SparcSubtarget *Subtarget;
+  const TargetInstrInfo *TII;
+  static char ID;
+
+  ErrataWorkaround() : MachineFunctionPass(ID) {
+    initializeErrataWorkaroundPass(*PassRegistry::getPassRegistry());
+  }
+
+  bool runOnMachineFunction(MachineFunction &MF) override;
+  bool checkSeqTN0009A(MachineBasicBlock::iterator I);
+  bool checkSeqTN0009B(MachineBasicBlock::iterator I);
+  bool checkSeqTN0012(MachineBasicBlock::iterator I);
+  bool checkSeqTN0013(MachineBasicBlock::iterator I);
+
+  bool moveNext(MachineBasicBlock::iterator &I);
+  bool isFloat(MachineBasicBlock::iterator I);
+  bool isDivSqrt(MachineBasicBlock::iterator I);
+  void insertNop(MachineBasicBlock::iterator I);
+  StringRef getPassName() const override { return "Errata workaround pass"; };
+};
+
+char ErrataWorkaround::ID = 0;
+
+bool ErrataWorkaround::moveNext(MachineBasicBlock::iterator &I) {
+
+  MachineBasicBlock *MBB = I->getParent();
+
+  do {
+    I++;
+
+    while (I == MBB->end()) {
+      if (MBB->getFallThrough() == nullptr)
+        return false;
+      MBB = MBB->getFallThrough();
+      I = MBB->begin();
+    }
+  } while (I->isMetaInstruction() || I->isInlineAsm());
+
+  return true;
+}
+
+void ErrataWorkaround::insertNop(MachineBasicBlock::iterator I) {
+  BuildMI(*I->getParent(), I, I->getDebugLoc(), TII->get(SP::NOP));
+}
+
+bool ErrataWorkaround::isFloat(MachineBasicBlock::iterator I) {
+  if (I->getNumOperands() == 0)
+    return false;
+
+  if (!I->getOperand(0).isReg())
+    return false;
+
+  unsigned reg = I->getOperand(0).getReg();
+
+  if (!SP::FPRegsRegClass.contains(reg) && !SP::DFPRegsRegClass.contains(reg))
+    return false;
+
+  return true;
+}
+
+bool ErrataWorkaround::isDivSqrt(MachineBasicBlock::iterator I) {
+  switch (I->getOpcode()) {
+  case SP::FDIVS:
+  case SP::FDIVD:
+  case SP::FSQRTS:
+  case SP::FSQRTD:
+    return true;
+  }
+  return false;
+}
+
+// Prevents the following code sequence from being generated:
+// (stb/sth/st/stf) -> (single non-store/load instruction) -> (any store)
+// If the sequence is detected a NOP instruction is inserted after
+// the first store instruction.
+bool ErrataWorkaround::checkSeqTN0009A(MachineBasicBlock::iterator I) {
+  switch (I->getOpcode()) {
+  case SP::STrr:
+  case SP::STri:
+  case SP::STBrr:
+  case SP::STBri:
+  case SP::STHrr:
+  case SP::STHri:
+  case SP::STFrr:
+  case SP::STFri:
+    break;
+  default:
+    return false;
+  }
+
+  MachineBasicBlock::iterator MI = I;
+  if (!moveNext(MI))
+    return false;
+
+  if (MI->mayStore() || MI->mayLoad())
+    return false;
+
+  MachineBasicBlock::iterator PatchHere = MI;
+
+  if (!moveNext(MI))
+    return false;
+
+  if (!MI->mayStore())
+    return false;
+
+  insertNop(PatchHere);
+  return true;
+}
+
+// Prevents the following code sequence from being generated:
+// (std/stdf) -> (any store)
+// If the sequence is detected a NOP instruction is inserted after
+// the first store instruction.
+bool ErrataWorkaround::checkSeqTN0009B(MachineBasicBlock::iterator I) {
+
+  switch (I->getOpcode()) {
+  case SP::STDrr:
+  case SP::STDri:
+  case SP::STDFrr:
+  case SP::STDFri:
+    break;
+  default:
+    return false;
+  }
+
+  MachineBasicBlock::iterator MI = I;
+
+  if (!moveNext(MI))
+    return false;
+
+  if (!MI->mayStore())
+    return false;
+
+  insertNop(MI);
+  return true;
+}
+
+// Inserts a NOP instruction at the target of an integer branch if the
+// target is a floating-point instruction or floating-point branch.
+bool ErrataWorkaround::checkSeqTN0012(MachineBasicBlock::iterator I) {
+
+  if (I->getOpcode() != SP::BCOND)
+    return false;
+
+  MachineBasicBlock *TargetMBB = I->getOperand(0).getMBB();
+  MachineBasicBlock::iterator MI = TargetMBB->begin();
+
+  while (MI != TargetMBB->end() && MI->isMetaInstruction())
+    MI++;
+
+  if (MI == TargetMBB->end())
+    return false;
+
+  if (!isFloat(MI) && MI->getOpcode() != SP::FBCOND)
+    return false;
+
+  insertNop(MI);
+  return true;
+}
+
+// Prevents the following code sequence from being generated:
+// (div/sqrt) -> (2 to 3 floating-point operations or loads) -> (div/sqrt)
+// If the sequence is detected one or two NOP instruction are inserted after
+// the first div/sqrt instruction. No NOPs are inserted if one of the floating-
+// point instructions in the middle of the sequence is a (div/sqrt), or if
+// they have dependency on the destination register of the first (div/sqrt).
+//
+// The function also prevents the following code sequence from being generated,
+// (div/sqrt) -> (branch), by inserting a NOP instruction after the (div/sqrt).
+bool ErrataWorkaround::checkSeqTN0013(MachineBasicBlock::iterator I) {
+
+  if (!isDivSqrt(I))
+    return false;
+
+  unsigned dstReg = I->getOperand(0).getReg();
+
+  MachineBasicBlock::iterator MI = I;
+  if (!moveNext(MI))
+    return false;
+
+  if (MI->isBranch()) {
+    insertNop(MI);
+    return true;
+  }
+
+  MachineBasicBlock::iterator PatchHere = MI;
+
+  unsigned fpFound = 0;
+  for (unsigned i = 0; i < 4; i++) {
+
+    if (!isFloat(MI)) {
+      if (!moveNext(MI))
+        return false;
+      continue;
+    }
+
+    if (MI->readsRegister(dstReg))
+      return false;
+
+    if (isDivSqrt(MI)) {
+      if (i < 2)
+        return false;
+      if (fpFound < 2)
+        return false;
+
+      insertNop(PatchHere);
+      if (i == 2)
+        insertNop(PatchHere);
+      return true;
+    }
+
+    fpFound++;
+    if (!moveNext(MI))
+      return false;
+  }
+
+  return false;
+}
+
+bool ErrataWorkaround::runOnMachineFunction(MachineFunction &MF) {
+  bool Changed = false;
+  Subtarget = &MF.getSubtarget<SparcSubtarget>();
+  TII = Subtarget->getInstrInfo();
+
+  for (auto &MBB : MF) {
+    for (auto &I : MBB) {
+      if (Subtarget->fixTN0009()) {
+        Changed |= checkSeqTN0009A(I);
+        Changed |= checkSeqTN0009B(I);
+      }
+      if (Subtarget->fixTN0012())
+        Changed |= checkSeqTN0012(I);
+      if (Subtarget->fixTN0013())
+        Changed |= checkSeqTN0013(I);
+    }
+  }
+  return Changed;
+}
+
+INITIALIZE_PASS(ErrataWorkaround, "errata-workaround", "Errata workaround pass",
+                false, false)
+
+namespace llvm {
+FunctionPass *createErrataWorkaroundPass() { return new ErrataWorkaround(); }
+} // namespace llvm
 
 LEONMachineFunctionPass::LEONMachineFunctionPass(char &ID)
     : MachineFunctionPass(ID) {}

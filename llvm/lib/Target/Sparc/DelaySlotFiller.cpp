@@ -41,7 +41,9 @@ namespace {
     const SparcSubtarget *Subtarget;
 
     static char ID;
-    Filler() : MachineFunctionPass(ID) {}
+    Filler() : MachineFunctionPass(ID) {
+      initializeFillerPass(*PassRegistry::getPassRegistry());
+    }
 
     StringRef getPassName() const override { return "SPARC Delay Slot Filler"; }
 
@@ -92,6 +94,8 @@ namespace {
   };
   char Filler::ID = 0;
 } // end of anonymous namespace
+
+INITIALIZE_PASS(Filler, DEBUG_TYPE, "Fill delay slot for Sparc", false, false)
 
 /// createSparcDelaySlotFillerPass - Returns a pass that fills in delay
 /// slots in Sparc MachineFunctions
@@ -282,6 +286,20 @@ bool Filler::delayHasHazard(MachineBasicBlock::iterator candidate,
       Opcode >=  SP::FDIVD && Opcode <= SP::FSQRTD)
     return true;
 
+  if (Subtarget->fixTN0009() && candidate->mayStore())
+    return true;
+
+  if (Subtarget->fixTN0013()) {
+    switch (Opcode) {
+    case SP::FDIVS:
+    case SP::FDIVD:
+    case SP::FSQRTS:
+    case SP::FSQRTD:
+      return true;
+    default:
+      break;
+    }
+  }
 
   return false;
 }

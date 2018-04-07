@@ -259,6 +259,12 @@ void SparcAsmPrinter::EmitInstruction(const MachineInstr *MI)
   case TargetOpcode::DBG_VALUE:
     // FIXME: Debug Value.
     return;
+  case SP::CASAasi10:
+  case SP::SWAPrr:
+  case SP::SWAPri:
+    if (MF->getSubtarget<SparcSubtarget>().fixTN0011())
+      OutStreamer->EmitCodeAlignment(16);
+    break;
   case SP::GETPCX:
     LowerGETPCXAndEmitMCInsts(MI, getSubtargetInfo());
     return;

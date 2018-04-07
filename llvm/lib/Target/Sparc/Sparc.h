@@ -29,6 +29,10 @@ namespace llvm {
 
   FunctionPass *createSparcISelDag(SparcTargetMachine &TM);
   FunctionPass *createSparcDelaySlotFillerPass();
+  FunctionPass *createErrataWorkaroundPass();
+
+  void initializeFillerPass(PassRegistry &);
+  void initializeErrataWorkaroundPass(PassRegistry &);
 
   void LowerSparcMachineInstrToMCInst(const MachineInstr *MI,
                                       MCInst &OutMI,

@@ -172,9 +172,8 @@ def : Processor<"ut699", LEON3Itineraries,
                 [FeatureLeon, InsertNOPLoad, FeatureNoFSMULD, FeatureNoFMULS, FixAllFDIVSQRT]>;
 
 // LEON3 FT (GR712RC). Provides features for the GR712RC processor.
-// - covers all the erratum fixed for LEON3 and support for the CASA instruction. 
 def : Processor<"gr712rc", LEON3Itineraries,
-                [FeatureLeon, LeonCASA]>;
+                [FeatureLeon, LeonCASA, FixTN0009, FixTN0011, FixTN0012, FixTN0013]>;
 
 // LEON 4 FT generic
 def : Processor<"leon4", LEON4Itineraries,
