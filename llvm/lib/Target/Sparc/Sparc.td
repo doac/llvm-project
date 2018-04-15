@@ -84,6 +84,9 @@ def UseRegG6 : SubtargetFeature<"use-reg-g6", "ReserveRegG6", "false",
 def UseRegG7 : SubtargetFeature<"use-reg-g7", "ReserveRegG7", "false",
                                 "Use %g7 as scratch register">;
 
+def FeatureFlat : SubtargetFeature<"flat", "UseFlatRegisterMode", "true",
+                              "Enable flat register mode">;
+
 //==== Features added predmoninantly for LEON subtarget support
 include "LeonFeatures.td"
 

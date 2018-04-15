@@ -50,6 +50,23 @@ public:
   /// time).
   bool targetHandlesStackFrameRounding() const override { return true; }
 
+  // Callee saved register functions used for flat register window model.
+  void emitFlatPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const;
+  void emitFlatEpilogue(MachineFunction &MF, MachineBasicBlock &MBB) const;
+  bool spillCalleeSavedRegisters(MachineBasicBlock &MBB,
+                                 MachineBasicBlock::iterator MI,
+                                 const std::vector<CalleeSavedInfo> &CSI,
+                                 const TargetRegisterInfo *TRI) const override;
+  bool
+  restoreCalleeSavedRegisters(MachineBasicBlock &MBB,
+                              MachineBasicBlock::iterator MI,
+                              std::vector<CalleeSavedInfo> &CSI,
+                              const TargetRegisterInfo *TRI) const override;
+  bool
+  assignCalleeSavedSpillSlots(MachineFunction &MF,
+                              const TargetRegisterInfo *TRI,
+                              std::vector<CalleeSavedInfo> &CSI) const override;
+
 private:
   // Remap input registers to output registers for leaf procedure.
   void remapRegsForLeafProc(MachineFunction &MF) const;

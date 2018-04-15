@@ -117,6 +117,13 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
 
   unsigned SAVEri = SP::SAVEri;
   unsigned SAVErr = SP::SAVErr;
+
+  if (Subtarget.useFlatRegisterMode()) {
+    emitFlatPrologue(MF, MBB);
+    SAVEri = SP::ADDri;
+    SAVErr = SP::ADDrr;
+  }
+
   if (FuncInfo->isLeafProc()) {
     if (NumBytes == 0)
       return;
@@ -158,26 +165,34 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
 
   emitSPAdjustment(MF, MBB, MBBI, -NumBytes, SAVErr, SAVEri);
 
-  unsigned regFP = RegInfo.getDwarfRegNum(SP::I6, true);
+  if (!Subtarget.useFlatRegisterMode()) {
+    unsigned regFP = RegInfo.getDwarfRegNum(SP::I6, true);
 
-  // Emit ".cfi_def_cfa_register 30".
-  unsigned CFIIndex =
-      MF.addFrameInst(MCCFIInstruction::createDefCfaRegister(nullptr, regFP));
-  BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
-      .addCFIIndex(CFIIndex);
+    // Emit ".cfi_def_cfa_register 30".
+    unsigned CFIIndex =
+        MF.addFrameInst(MCCFIInstruction::createDefCfaRegister(nullptr, regFP));
+    BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+        .addCFIIndex(CFIIndex);
 
-  // Emit ".cfi_window_save".
-  CFIIndex = MF.addFrameInst(MCCFIInstruction::createWindowSave(nullptr));
-  BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
-      .addCFIIndex(CFIIndex);
+    // Emit ".cfi_window_save".
+    CFIIndex = MF.addFrameInst(MCCFIInstruction::createWindowSave(nullptr));
+    BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+        .addCFIIndex(CFIIndex);
 
-  unsigned regInRA = RegInfo.getDwarfRegNum(SP::I7, true);
-  unsigned regOutRA = RegInfo.getDwarfRegNum(SP::O7, true);
-  // Emit ".cfi_register 15, 31".
-  CFIIndex = MF.addFrameInst(
-      MCCFIInstruction::createRegister(nullptr, regOutRA, regInRA));
-  BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
-      .addCFIIndex(CFIIndex);
+    unsigned regInRA = RegInfo.getDwarfRegNum(SP::I7, true);
+    unsigned regOutRA = RegInfo.getDwarfRegNum(SP::O7, true);
+    // Emit ".cfi_register 15, 31".
+    CFIIndex = MF.addFrameInst(
+        MCCFIInstruction::createRegister(nullptr, regOutRA, regInRA));
+    BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+        .addCFIIndex(CFIIndex);
+
+  } else {
+    unsigned CFIIndex = MF.addFrameInst(
+        MCCFIInstruction::createDefCfaOffset(nullptr, -NumBytes));
+    BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+        .addCFIIndex(CFIIndex);
+  }
 
   if (NeedsStackRealignment) {
     int64_t Bias = Subtarget.getStackPointerBias();
@@ -223,13 +238,21 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
 void SparcFrameLowering::emitEpilogue(MachineFunction &MF,
                                   MachineBasicBlock &MBB) const {
   SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
   const SparcInstrInfo &TII =
       *static_cast<const SparcInstrInfo *>(MF.getSubtarget().getInstrInfo());
   DebugLoc dl = MBBI->getDebugLoc();
+
+  if (Subtarget.useFlatRegisterMode()) {
+    emitFlatEpilogue(MF, MBB);
+    return;
+  }
+
   assert((MBBI->getOpcode() == SP::RETL || MBBI->getOpcode() == SP::TAIL_CALL ||
           MBBI->getOpcode() == SP::TAIL_CALLri) &&
          "Can only put epilog before 'retl' or 'tail_call' instruction!");
+
   if (!FuncInfo->isLeafProc()) {
     BuildMI(MBB, MBBI, dl, TII.get(SP::RESTORErr), SP::G0).addReg(SP::G0)
       .addReg(SP::G0);
@@ -291,6 +314,8 @@ int SparcFrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI
     // If there's a leaf proc, all offsets need to be %sp-based,
     // because we haven't caused %fp to actually point to our frame.
     UseFP = false;
+  } else if (Subtarget.useFlatRegisterMode()) {
+    UseFP = hasFP(MF) && !RegInfo->needsStackRealignment(MF);
   } else if (isFixed) {
     // Otherwise, argument access should always use %fp.
     UseFP = true;
@@ -393,12 +418,236 @@ void SparcFrameLowering::determineCalleeSaves(MachineFunction &MF,
                                               BitVector &SavedRegs,
                                               RegScavenger *RS) const {
   TargetFrameLowering::determineCalleeSaves(MF, SavedRegs, RS);
+
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+
   if (!DisableLeafProc && isLeafProc(MF)) {
     SparcMachineFunctionInfo *MFI = MF.getInfo<SparcMachineFunctionInfo>();
     MFI->setLeafProc(true);
 
-    remapRegsForLeafProc(MF);
+    if (!Subtarget.useFlatRegisterMode())
+      remapRegsForLeafProc(MF);
   }
+
+  if (Subtarget.useFlatRegisterMode()) {
+    const MachineFrameInfo &MFI = MF.getFrameInfo();
+    const MachineRegisterInfo &MRI = MF.getRegInfo();
+
+    if (MFI.hasCalls() || MRI.isPhysRegModified(SP::O7)
+        || MFI.isReturnAddressTaken())
+      SavedRegs.set(SP::I7);
+
+    // Landing pads will modify I0 and I1
+    if (!MF.getLandingPads().empty()) {
+        SavedRegs.set(SP::I0);
+        SavedRegs.set(SP::I1);
+    }
+
+    assert(!MRI.isPhysRegUsed(SP::I6));
+
+    if (hasFP(MF))
+      SavedRegs.set(Subtarget.getRegisterInfo()->getFrameRegister(MF));
+  }
+}
+
+bool SparcFrameLowering::assignCalleeSavedSpillSlots(
+    MachineFunction &MF, const TargetRegisterInfo *TRI,
+    std::vector<CalleeSavedInfo> &CSI) const {
+  // All callee saved registers have fixed stack locations.
+  return true;
+}
+
+bool SparcFrameLowering::restoreCalleeSavedRegisters(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
+    std::vector<CalleeSavedInfo> &CSI, const TargetRegisterInfo *TRI) const {
+  return true;
+}
+
+bool SparcFrameLowering::spillCalleeSavedRegisters(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
+    const std::vector<CalleeSavedInfo> &CSI,
+    const TargetRegisterInfo *TRI) const {
+  // Handled in emitFlatPrologue() for the flat register window model.
+  return true;
+}
+
+void SparcFrameLowering::emitFlatPrologue(MachineFunction &MF,
+                                          MachineBasicBlock &MBB) const {
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  MachineFrameInfo &MFI = MF.getFrameInfo();
+  const SparcInstrInfo &TII =
+      *static_cast<const SparcInstrInfo *>(Subtarget.getInstrInfo());
+  const SparcRegisterInfo &RegInfo =
+      *static_cast<const SparcRegisterInfo *>(Subtarget.getRegisterInfo());
+  MachineBasicBlock::iterator MBBI = MBB.begin();
+  DebugLoc dl;
+
+  const std::vector<CalleeSavedInfo> &CSI = MFI.getCalleeSavedInfo();
+
+  BitVector Saved(RegInfo.getNumRegs());
+  DebugLoc DL;
+
+  for (auto &CS : CSI)
+    Saved.set(CS.getReg());
+
+  for (unsigned i = 0; i < 16; i++) {
+    unsigned Reg = i < 8 ? SP::L0 + i : SP::I0 + i - 8;
+
+    if (Saved.test(Reg)) {
+      if (i % 2 == 0 && Saved.test(Reg + 1)) {
+        unsigned DReg = i < 8 ? SP::L0_L1 + i / 2 : SP::I0_I1 + (i - 8) / 2;
+        BuildMI(MBB, MBBI, DL, TII.get(SP::STDri))
+            .addReg(SP::O6)
+            .addImm(i * 4)
+            .addReg(DReg)
+            .setMIFlag(MachineInstr::FrameSetup);
+
+        unsigned CFIIndex = MF.addFrameInst(MCCFIInstruction::createOffset(
+            nullptr, RegInfo.getDwarfRegNum(Reg, true), i * 4));
+        BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+            .addCFIIndex(CFIIndex);
+        CFIIndex = MF.addFrameInst(MCCFIInstruction::createOffset(
+            nullptr, RegInfo.getDwarfRegNum(Reg + 1, true), i * 4 + 4));
+        BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+            .addCFIIndex(CFIIndex);
+
+        i++;
+      } else {
+        BuildMI(MBB, MBBI, DL, TII.get(SP::STri))
+            .addReg(SP::O6)
+            .addImm(i * 4)
+            .addReg(Reg)
+            .setMIFlag(MachineInstr::FrameSetup);
+        unsigned CFIIndex = MF.addFrameInst(MCCFIInstruction::createOffset(
+            nullptr, RegInfo.getDwarfRegNum(Reg, true), i * 4));
+        BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+            .addCFIIndex(CFIIndex);
+      }
+    }
+  }
+
+  if (Saved.test(SP::I7)) {
+    if (!MBB.isLiveIn(SP::O7))
+      MBB.addLiveIn(SP::O7);
+    BuildMI(MBB, MBBI, DL, TII.get(SP::ORrr))
+        .addReg(SP::I7, RegState::Define)
+        .addReg(SP::G0)
+        .addReg(SP::O7);
+    unsigned regInRA = RegInfo.getDwarfRegNum(SP::I7, true);
+    unsigned regOutRA = RegInfo.getDwarfRegNum(SP::O7, true);
+    // Emit ".cfi_register 15, 31".
+    unsigned CFIIndex = MF.addFrameInst(
+        MCCFIInstruction::createRegister(nullptr, regOutRA, regInRA));
+    BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+        .addCFIIndex(CFIIndex);
+  }
+
+  if (Saved.test(SP::I6)) {
+    llvm_unreachable("Frame pointer can not be used in flat mode");
+  }
+
+  if (hasFP(MF)) {
+    BuildMI(MBB, MBBI, DL, TII.get(SP::ORrr))
+        .addReg(Subtarget.getRegisterInfo()->getFrameRegister(MF),
+                RegState::Define)
+        .addReg(SP::G0)
+        .addReg(SP::O6);
+  }
+
+  return;
+}
+
+void SparcFrameLowering::emitFlatEpilogue(MachineFunction &MF,
+                                          MachineBasicBlock &MBB) const {
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
+  const SparcInstrInfo &TII =
+      *static_cast<const SparcInstrInfo *>(MF.getSubtarget().getInstrInfo());
+  DebugLoc dl = MBBI->getDebugLoc();
+
+  assert(Subtarget.useFlatRegisterMode());
+
+  MachineFrameInfo &MFI = MF.getFrameInfo();
+  int NumBytes = (int)MFI.getStackSize();
+
+  const std::vector<CalleeSavedInfo> &CSI = MFI.getCalleeSavedInfo();
+
+  BitVector Saved(Subtarget.getRegisterInfo()->getNumRegs());
+
+  for (auto &CS : CSI)
+    Saved.set(CS.getReg());
+
+  bool TailCall = MBBI->getOpcode() == SP::TAIL_CALL;
+
+  // Restore return address from I7.
+  if (Saved.test(SP::I7)) {
+    BuildMI(MBB, MBBI, dl, TII.get(SP::ORrr))
+        .addReg(TailCall ? SP::G2 : SP::O7, RegState::Define)
+        .addReg(SP::G0)
+        .addReg(SP::I7);
+  }
+
+  unsigned FrameReg = SP::O6;
+  bool RestoreSP = false;
+
+  if (hasFP(MF)) {
+    NumBytes = 0;
+    FrameReg = SP::G1;
+    RestoreSP = true;
+    Subtarget.getRegisterInfo()->getFrameRegister(MF);
+    BuildMI(MBB, MBBI, dl, TII.get(SP::ORrr))
+        .addReg(SP::G1, RegState::Define)
+        .addReg(SP::G0)
+        .addReg(Subtarget.getRegisterInfo()->getFrameRegister(MF));
+  }
+
+  if (NumBytes + 64 > 4095) {
+    BuildMI(MBB, MBBI, dl, TII.get(SP::SETHIi), SP::G1).addImm(HI22(NumBytes));
+    BuildMI(MBB, MBBI, dl, TII.get(SP::ORri), SP::G1)
+        .addReg(SP::G1)
+        .addImm(LO10(NumBytes));
+    BuildMI(MBB, MBBI, dl, TII.get(SP::ADDrr), SP::G1)
+        .addReg(SP::O6)
+        .addReg(SP::G1);
+    NumBytes = 0;
+    FrameReg = SP::G1;
+    RestoreSP = true;
+  }
+
+  for (unsigned i = 0; i < 16; i++) {
+    unsigned Reg = i < 8 ? SP::L0 + i : SP::I0 + i - 8;
+
+    if (Saved.test(Reg)) {
+      if (i % 2 == 0 && Saved.test(Reg + 1)) {
+        unsigned DReg = i < 8 ? SP::L0_L1 + i / 2 : SP::I0_I1 + (i - 8) / 2;
+        BuildMI(MBB, MBBI, dl, TII.get(SP::LDDri))
+            .addReg(DReg, RegState::Define)
+            .addReg(FrameReg)
+            .addImm(i * 4 + NumBytes);
+        i++;
+      } else
+        BuildMI(MBB, MBBI, dl, TII.get(SP::LDri))
+            .addReg(Reg, RegState::Define)
+            .addReg(FrameReg)
+            .addImm(i * 4 + NumBytes);
+    }
+  }
+
+  if (RestoreSP) {
+    BuildMI(MBB, MBBI, dl, TII.get(SP::ORrr))
+        .addReg(SP::O6, RegState::Define)
+        .addReg(SP::G0)
+        .addReg(SP::G1);
+  } else if (NumBytes != 0)
+    emitSPAdjustment(MF, MBB, MBBI, NumBytes, SP::ADDrr, SP::ADDri);
+
+  if (TailCall)
+    BuildMI(MBB, MBBI, dl, TII.get(SP::ORrr))
+        .addReg(SP::O7, RegState::Define)
+        .addReg(SP::G0)
+        .addReg(SP::G2);
+
+  return;
 }
 
 void SparcFrameLowering::processFunctionBeforeFrameFinalized(

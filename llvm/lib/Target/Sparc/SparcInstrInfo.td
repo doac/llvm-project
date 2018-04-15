@@ -135,6 +135,9 @@ def MEMri : Operand<iPTR> {
   let MIOperandInfo = (ops ptr_rc, i32imm);
   let ParserMatchClass = SparcMEMriAsmOperand;
 }
+def TCMEMrr :  Operand<iPTR> {
+  let MIOperandInfo = (ops LeafRegs, LeafRegs);
+}
 
 def TLSSym : Operand<iPTR>;
 

@@ -51,17 +51,29 @@ static bool CC_Sparc_Assign_SRet(unsigned &ValNo, MVT &ValVT,
   return true;
 }
 
-static bool CC_Sparc_Assign_Split_64(unsigned &ValNo, MVT &ValVT,
-                                     MVT &LocVT, CCValAssign::LocInfo &LocInfo,
-                                     ISD::ArgFlagsTy &ArgFlags, CCState &State)
-{
-  static const MCPhysReg RegList[] = {
-    SP::I0, SP::I1, SP::I2, SP::I3, SP::I4, SP::I5
-  };
+static ArrayRef<llvm::MCPhysReg> getArgRegs(const SparcSubtarget &Subtarget) {
+  static const MCPhysReg RegList[]     = {SP::I0, SP::I1, SP::I2,
+                                          SP::I3, SP::I4, SP::I5};
+  static const MCPhysReg RegListFlat[] = {SP::O0, SP::O1, SP::O2,
+                                          SP::O3, SP::O4, SP::O5};
+  return makeArrayRef(Subtarget.useFlatRegisterMode() ? RegListFlat : RegList);
+}
+
+static bool CC_Sparc_Assign_Split_64_Common(unsigned &ValNo, MVT &ValVT,
+                                            MVT &LocVT,
+                                            CCValAssign::LocInfo &LocInfo,
+                                            CCState &State, bool isRet) {
+
+  MachineFunction &MF = State.getMachineFunction();
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+
   // Try to get first reg.
-  if (unsigned Reg = State.AllocateReg(RegList)) {
+  if (unsigned Reg = State.AllocateReg(getArgRegs(Subtarget))) {
     State.addLoc(CCValAssign::getCustomReg(ValNo, ValVT, Reg, LocVT, LocInfo));
   } else {
+    if (isRet)
+      return false;
+
     // Assign whole thing in stack.
     State.addLoc(CCValAssign::getCustomMem(ValNo, ValVT,
                                            State.AllocateStack(8,4),
@@ -70,36 +82,33 @@ static bool CC_Sparc_Assign_Split_64(unsigned &ValNo, MVT &ValVT,
   }
 
   // Try to get second reg.
-  if (unsigned Reg = State.AllocateReg(RegList))
+  if (unsigned Reg = State.AllocateReg(getArgRegs(Subtarget)))
     State.addLoc(CCValAssign::getCustomReg(ValNo, ValVT, Reg, LocVT, LocInfo));
-  else
+  else {
+    if (isRet)
+      return false;
+
     State.addLoc(CCValAssign::getCustomMem(ValNo, ValVT,
                                            State.AllocateStack(4,4),
                                            LocVT, LocInfo));
+  }
   return true;
+}
+
+static bool CC_Sparc_Assign_Split_64(unsigned &ValNo, MVT &ValVT, MVT &LocVT,
+                                     CCValAssign::LocInfo &LocInfo,
+                                     ISD::ArgFlagsTy &ArgFlags,
+                                     CCState &State) {
+  return CC_Sparc_Assign_Split_64_Common(ValNo, ValVT, LocVT, LocInfo, State,
+                                         false);
 }
 
 static bool CC_Sparc_Assign_Ret_Split_64(unsigned &ValNo, MVT &ValVT,
                                          MVT &LocVT, CCValAssign::LocInfo &LocInfo,
                                          ISD::ArgFlagsTy &ArgFlags, CCState &State)
 {
-  static const MCPhysReg RegList[] = {
-    SP::I0, SP::I1, SP::I2, SP::I3, SP::I4, SP::I5
-  };
-
-  // Try to get first reg.
-  if (unsigned Reg = State.AllocateReg(RegList))
-    State.addLoc(CCValAssign::getCustomReg(ValNo, ValVT, Reg, LocVT, LocInfo));
-  else
-    return false;
-
-  // Try to get second reg.
-  if (unsigned Reg = State.AllocateReg(RegList))
-    State.addLoc(CCValAssign::getCustomReg(ValNo, ValVT, Reg, LocVT, LocInfo));
-  else
-    return false;
-
-  return true;
+  return CC_Sparc_Assign_Split_64_Common(ValNo, ValVT, LocVT, LocInfo, State,
+                                         true);
 }
 
 // Allocate a full-sized argument for the 64-bit ABI.
@@ -220,7 +229,10 @@ SparcTargetLowering::LowerReturn_32(SDValue Chain, CallingConv::ID CallConv,
                  *DAG.getContext());
 
   // Analyze return values.
-  CCInfo.AnalyzeReturn(Outs, RetCC_Sparc32);
+  if (Subtarget->useFlatRegisterMode())
+    CCInfo.AnalyzeReturn(Outs, RetCC_Sparc32_Flat);
+  else
+    CCInfo.AnalyzeReturn(Outs, RetCC_Sparc32);
 
   SDValue Flag;
   SmallVector<SDValue, 4> RetOps(1, Chain);
@@ -269,11 +281,12 @@ SparcTargetLowering::LowerReturn_32(SDValue Chain, CallingConv::ID CallConv,
     unsigned Reg = SFI->getSRetReturnReg();
     if (!Reg)
       llvm_unreachable("sret virtual register not created in the entry block");
+    unsigned ReturnReg = Subtarget->useFlatRegisterMode() ? SP::O0 : SP::I0;
     auto PtrVT = getPointerTy(DAG.getDataLayout());
     SDValue Val = DAG.getCopyFromReg(Chain, DL, Reg, PtrVT);
-    Chain = DAG.getCopyToReg(Chain, DL, SP::I0, Val, Flag);
+    Chain = DAG.getCopyToReg(Chain, DL, ReturnReg, Val, Flag);
     Flag = Chain.getValue(1);
-    RetOps.push_back(DAG.getRegister(SP::I0, PtrVT));
+    RetOps.push_back(DAG.getRegister(ReturnReg, PtrVT));
     RetAddrOffset = 12; // CallInst + Delay Slot + Unimp
   }
 
@@ -392,7 +405,10 @@ SDValue SparcTargetLowering::LowerFormalArguments_32(
   SmallVector<CCValAssign, 16> ArgLocs;
   CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(), ArgLocs,
                  *DAG.getContext());
-  CCInfo.AnalyzeFormalArguments(Ins, CC_Sparc32);
+  if (Subtarget->useFlatRegisterMode())
+    CCInfo.AnalyzeFormalArguments(Ins, CC_Sparc32_Flat);
+  else
+    CCInfo.AnalyzeFormalArguments(Ins, CC_Sparc32);
 
   const unsigned StackOffset = 92;
   bool IsLittleEndian = DAG.getDataLayout().isLittleEndian();
@@ -533,11 +549,9 @@ SDValue SparcTargetLowering::LowerFormalArguments_32(
 
   // Store remaining ArgRegs to the stack if this is a varargs function.
   if (isVarArg) {
-    static const MCPhysReg ArgRegs[] = {
-      SP::I0, SP::I1, SP::I2, SP::I3, SP::I4, SP::I5
-    };
+    ArrayRef<MCPhysReg> ArgRegs = getArgRegs(*Subtarget);
     unsigned NumAllocated = CCInfo.getFirstUnallocated(ArgRegs);
-    const MCPhysReg *CurArgReg = ArgRegs+NumAllocated, *ArgRegEnd = ArgRegs+6;
+
     unsigned ArgOffset = CCInfo.getNextStackOffset();
     if (NumAllocated == 6)
       ArgOffset += StackOffset;
@@ -551,9 +565,9 @@ SDValue SparcTargetLowering::LowerFormalArguments_32(
 
     std::vector<SDValue> OutChains;
 
-    for (; CurArgReg != ArgRegEnd; ++CurArgReg) {
+    for (unsigned I = NumAllocated; I < ArgRegs.size(); I++) {
       unsigned VReg = RegInfo.createVirtualRegister(&SP::IntRegsRegClass);
-      MF.getRegInfo().addLiveIn(*CurArgReg, VReg);
+      MF.getRegInfo().addLiveIn(ArgRegs[I], VReg);
       SDValue Arg = DAG.getCopyFromReg(DAG.getRoot(), dl, VReg, MVT::i32);
 
       int FrameIdx = MF.getFrameInfo().CreateFixedObject(4, ArgOffset,
@@ -761,7 +775,10 @@ SparcTargetLowering::LowerCall_32(TargetLowering::CallLoweringInfo &CLI,
   SmallVector<CCValAssign, 16> ArgLocs;
   CCState CCInfo(CallConv, isVarArg, DAG.getMachineFunction(), ArgLocs,
                  *DAG.getContext());
-  CCInfo.AnalyzeCallOperands(Outs, CC_Sparc32);
+  if (Subtarget->useFlatRegisterMode())
+    CCInfo.AnalyzeCallOperands(Outs, CC_Sparc32_Flat);
+  else
+    CCInfo.AnalyzeCallOperands(Outs, CC_Sparc32);
 
   isTailCall = isTailCall && IsEligibleForTailCallOptimization(
                                  CCInfo, CLI, DAG.getMachineFunction());
@@ -1029,7 +1046,10 @@ SparcTargetLowering::LowerCall_32(TargetLowering::CallLoweringInfo &CLI,
   CCState RVInfo(CallConv, isVarArg, DAG.getMachineFunction(), RVLocs,
                  *DAG.getContext());
 
-  RVInfo.AnalyzeCallResult(Ins, RetCC_Sparc32);
+  if (Subtarget->useFlatRegisterMode())
+    RVInfo.AnalyzeCallResult(Ins, RetCC_Sparc32_Flat);
+  else
+    RVInfo.AnalyzeCallResult(Ins, RetCC_Sparc32);
 
   // Copy all of the result registers out of their specified physreg.
   for (unsigned i = 0; i != RVLocs.size(); ++i) {
@@ -2585,17 +2605,20 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG,
 static SDValue LowerVASTART(SDValue Op, SelectionDAG &DAG,
                             const SparcTargetLowering &TLI) {
   MachineFunction &MF = DAG.getMachineFunction();
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  const SparcRegisterInfo *TRI = Subtarget.getRegisterInfo();
   SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
   auto PtrVT = TLI.getPointerTy(DAG.getDataLayout());
-
   // Need frame address to find the address of VarArgsFrameIndex.
   MF.getFrameInfo().setFrameAddressIsTaken(true);
+
+  unsigned FrameReg = TRI->getFrameRegister(MF);
 
   // vastart just stores the address of the VarArgsFrameIndex slot into the
   // memory location argument.
   SDLoc DL(Op);
   SDValue Offset =
-      DAG.getNode(ISD::ADD, DL, PtrVT, DAG.getRegister(SP::I6, PtrVT),
+      DAG.getNode(ISD::ADD, DL, PtrVT, DAG.getRegister(FrameReg, PtrVT),
                   DAG.getIntPtrConstant(FuncInfo->getVarArgsFrameOffset(), DL));
   const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
   return DAG.getStore(Op.getOperand(0), DL, Offset, Op.getOperand(1),
@@ -2700,11 +2723,12 @@ static SDValue getFRAMEADDR(uint64_t depth, SDValue Op, SelectionDAG &DAG,
                             const SparcSubtarget *Subtarget,
                             bool AlwaysFlush = false) {
   MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
+  const TargetRegisterInfo *TRI = Subtarget->getRegisterInfo();
   MFI.setFrameAddressIsTaken(true);
 
   EVT VT = Op.getValueType();
   SDLoc dl(Op);
-  unsigned FrameReg = SP::I6;
+  unsigned FrameReg = TRI->getFrameRegister(DAG.getMachineFunction());
   unsigned stackBias = Subtarget->getStackPointerBias();
 
   SDValue FrameAddr;

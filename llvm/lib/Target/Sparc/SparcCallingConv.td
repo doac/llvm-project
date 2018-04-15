@@ -38,6 +38,29 @@ def RetCC_Sparc32 : CallingConv<[
   CCIfType<[v2i32], CCCustom<"CC_Sparc_Assign_Ret_Split_64">>
 ]>;
 
+//===----------------------------------------------------------------------===//
+// SPARC v8 32-bit - Flat register mode.
+//===----------------------------------------------------------------------===//
+
+def CC_Sparc32_Flat : CallingConv<[
+  CCIfSRet<CCCustom<"CC_Sparc_Assign_SRet">>,
+  // Place arguments in the O registers instead of I.
+  CCIfType<[i32, f32], CCAssignToReg<[O0, O1, O2, O3, O4, O5]>>,
+  CCIfType<[f64], CCCustom<"CC_Sparc_Assign_Split_64">>,
+  CCIfType<[v2i32], CCCustom<"CC_Sparc_Assign_Split_64">>,
+  CCAssignToStack<4, 4>
+]>;
+
+def RetCC_Sparc32_Flat : CallingConv<[
+  // Place arguments in the O registers instead of I.
+  CCIfType<[i32], CCAssignToReg<[O0, O1, O2, O3, O4, O5]>>,
+  CCIfType<[f32], CCAssignToReg<[F0, F1, F2, F3]>>,
+  CCIfType<[f64], CCAssignToReg<[D0, D1]>>,
+  CCIfType<[v2i32], CCCustom<"CC_Sparc_Assign_Ret_Split_64">>
+]>;
+
+def CSR_Flat : CalleeSavedRegs<(add (sequence "I%u", 0, 7),
+                                    (sequence "L%u", 0, 7))>;
 
 //===----------------------------------------------------------------------===//
 // SPARC v9 64-bit.

@@ -34,7 +34,11 @@ SparcRegisterInfo::SparcRegisterInfo() : SparcGenRegisterInfo(SP::O7) {}
 
 const MCPhysReg*
 SparcRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
-  return CSR_SaveList;
+  const SparcSubtarget &Subtarget = MF->getSubtarget<SparcSubtarget>();
+  if (Subtarget.useFlatRegisterMode())
+    return CSR_Flat_SaveList;
+  else
+    return CSR_SaveList;
 }
 
 const uint32_t *
@@ -55,6 +59,10 @@ bool SparcRegisterInfo::isConstantPhysReg(unsigned PhysReg) const {
 BitVector SparcRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  const SparcFrameLowering *TFI = getFrameLowering(MF);
+
+  if (Subtarget.useFlatRegisterMode() && TFI->hasFP(MF))
+    markSuperRegs(Reserved, SP::L7);
 
   if (Subtarget.reserveRegG2())
     markSuperRegs(Reserved, SP::G2);
@@ -202,6 +210,10 @@ SparcRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 }
 
 unsigned SparcRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  if (Subtarget.useFlatRegisterMode())
+    return SP::L7;
+
   return SP::I6;
 }
 

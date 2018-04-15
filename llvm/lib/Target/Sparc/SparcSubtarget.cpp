@@ -40,6 +40,7 @@ SparcSubtarget &SparcSubtarget::initializeSubtargetDependencies(StringRef CPU,
   UseSoftFloat = false;
   HasNoFSMULD = false;
   HasNoFMULS = false;
+  UseFlatRegisterMode = false;
 
   ReserveRegG2 = false;
   ReserveRegG3 = false;

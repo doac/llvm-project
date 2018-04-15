@@ -49,6 +49,7 @@ class SparcSubtarget : public SparcGenSubtargetInfo {
   bool ReserveRegG5;
   bool ReserveRegG6;
   bool ReserveRegG7;
+  bool UseFlatRegisterMode;
 
   // LEON features
   bool HasUmacSmac;
@@ -106,6 +107,7 @@ public:
   bool reserveRegG5() const { return ReserveRegG5; }
   bool reserveRegG6() const { return ReserveRegG6; }
   bool reserveRegG7() const { return ReserveRegG7; }
+  bool useFlatRegisterMode() const { return UseFlatRegisterMode; }
 
   // Leon options
   bool hasUmacSmac() const { return HasUmacSmac; }
