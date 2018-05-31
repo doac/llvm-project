@@ -16,6 +16,7 @@
 
 #include "SparcInstrInfo.h"
 #include "SparcSubtarget.h"
+#include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
@@ -40,6 +41,8 @@ public:
   TargetLoweringObjectFile *getObjFileLowering() const override {
     return TLOF.get();
   }
+
+  TargetTransformInfo getTargetTransformInfo(const Function &F) override;
 };
 
 /// Sparc 32-bit target machine

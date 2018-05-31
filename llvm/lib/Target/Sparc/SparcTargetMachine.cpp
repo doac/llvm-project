@@ -14,10 +14,13 @@
 #include "LeonPasses.h"
 #include "Sparc.h"
 #include "SparcTargetObjectFile.h"
+#include "SparcTargetTransformInfo.h"
+#include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Support/TargetRegistry.h"
+
 using namespace llvm;
 
 extern "C" void LLVMInitializeSparcTarget() {
@@ -194,6 +197,11 @@ void SparcPassConfig::addPreEmitPass() {
 
   if (ST->fixTN0009() || ST->fixTN0011() || ST->fixTN0012() || ST->fixTN0013())
     addPass(createErrataWorkaroundPass());
+}
+
+TargetTransformInfo
+SparcTargetMachine::getTargetTransformInfo(const Function &F) {
+  return TargetTransformInfo(SparcTTIImpl(this, F));
 }
 
 void SparcV8TargetMachine::anchor() { }
