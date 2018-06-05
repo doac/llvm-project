@@ -34,6 +34,8 @@ namespace llvm {
   void initializeFillerPass(PassRegistry &);
   void initializeErrataWorkaroundPass(PassRegistry &);
 
+  void initializeFillerPass(PassRegistry &);
+
   void LowerSparcMachineInstrToMCInst(const MachineInstr *MI,
                                       MCInst &OutMI,
                                       AsmPrinter &AP);

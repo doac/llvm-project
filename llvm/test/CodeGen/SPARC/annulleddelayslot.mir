@@ -1,0 +1,77 @@
+# RUN: llc %s -march=sparc -run-pass=delay-slot-filler -o - | FileCheck %s
+
+---
+# CHECK-LABEL: name: branch_always
+# CHECK:      BCONDA %bb.0, 8
+name:            branch_always
+body:             |
+  bb.0.entry:
+    BA %bb.0.entry
+
+---
+# CHECK-LABEL: conditional_branch
+# CHECK: BCONDA %bb.2, 10, implicit $icc
+# CHECK: STrr $o1, $g0, $o0
+# CHECK: bb.1:
+# CHECK: STrr $o1, $g0, $o0
+# CHECK: bb.2:
+name:            conditional_branch
+body:             |
+  bb.0.entry:
+    BCOND %bb.1, 10, implicit $icc
+  bb.1:
+    STrr $o1, $g0, $o0
+
+---
+# CHECK-LABEL: no_candidate
+# CHECK: CMPri killed $o4, 1, implicit-def $icc
+# CHECK: BCOND %bb.0, 9, implicit $icc {
+# CHECK: NOP
+name: no_candidate
+body:    |
+  bb.1:
+    CMPri killed $o4, 1, implicit-def $icc
+    BCOND %bb.1, 9, implicit $icc
+    RETL 4
+
+---
+# CHECK-LABEL: multiple_branches_to_same_block
+# CHECK: BCONDA %bb.2, 9, implicit $icc {
+# CHECK: STrr $o1, $g0, $o0
+# CHECK: BCONDA %bb.2, 9, implicit $icc {
+# CHECK: STrr $o1, $g0, $o0
+# CHECK: BCONDA %bb.2, 9, implicit $icc {
+# CHECK: STrr $o1, $g0, $o0
+name: multiple_branches_to_same_block
+body:    |
+  bb.1:
+    CMPri killed $o4, 1, implicit-def $icc
+    BCOND %bb.2, 9, implicit $icc
+    BCOND %bb.2, 9, implicit $icc
+    BCOND %bb.2, 9, implicit $icc
+    RETL 4
+  bb.2:
+    STrr $o1, $g0, $o0
+
+---
+# CHECK-LABEL: multiple_branches_to_parent_block
+# CHECK: STrr $o1, $g0, $o0
+# CHECK: CMPri killed $o4, 1, implicit-def $icc
+# CHECK: BCOND %bb.0, 9, implicit $icc {
+# CHECK:   STrr $o1, $g1, $o0
+# CHECK: BCONDA %bb.1, 9, implicit $icc {
+# CHECK:   STrr $o1, $g0, $o0
+# CHECK: BCONDA %bb.1, 9, implicit $icc {
+# CHECK:   STrr $o1, $g0, $o0
+name: multiple_branches_to_parent_block
+body:    |
+  bb.1:
+    STrr $o1, $g0, $o0
+    STrr $o1, $g1, $o0
+    CMPri killed $o4, 1, implicit-def $icc
+    BCOND %bb.1, 9, implicit $icc
+    BCOND %bb.1, 9, implicit $icc
+    BCOND %bb.1, 9, implicit $icc
+    RETL 4
+
+...

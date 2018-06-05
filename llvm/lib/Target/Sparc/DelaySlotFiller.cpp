@@ -40,6 +40,9 @@ namespace {
   struct Filler : public MachineFunctionPass {
     const SparcSubtarget *Subtarget;
 
+    using MBBPairVec =
+        SmallVector<std::pair<MachineBasicBlock *, MachineBasicBlock *>, 8>;
+
     static char ID;
     Filler() : MachineFunctionPass(ID) {
       initializeFillerPass(*PassRegistry::getPassRegistry());
@@ -47,9 +50,10 @@ namespace {
 
     StringRef getPassName() const override { return "SPARC Delay Slot Filler"; }
 
-    bool runOnMachineBasicBlock(MachineBasicBlock &MBB);
+    bool runOnMachineBasicBlock(MachineBasicBlock &MBB, MBBPairVec &SplitMBBs);
     bool runOnMachineFunction(MachineFunction &F) override {
       bool Changed = false;
+      MBBPairVec SplitMBBs;
       Subtarget = &F.getSubtarget<SparcSubtarget>();
 
       // This pass invalidates liveness information when it reorders
@@ -58,7 +62,12 @@ namespace {
 
       for (MachineFunction::iterator FI = F.begin(), FE = F.end();
            FI != FE; ++FI)
-        Changed |= runOnMachineBasicBlock(*FI);
+        Changed |= runOnMachineBasicBlock(*FI, SplitMBBs);
+
+      // Instructions with an annulled delay slot might require a block to
+      // be split to be able to skip the first instruction.
+      splitBlocksIfNeeded(SplitMBBs);
+
       return Changed;
     }
 
@@ -86,6 +95,13 @@ namespace {
     MachineBasicBlock::iterator
     findDelayInstr(MachineBasicBlock &MBB, MachineBasicBlock::iterator slot);
 
+    bool findAnnulledDelayInstr(MachineBasicBlock &MBB,
+                                MachineBasicBlock::iterator slot,
+                                MachineBasicBlock *&FirstInstBlock,
+                                MBBPairVec &SplitMBBs);
+
+    void splitBlocksIfNeeded(MBBPairVec &SplitMBBs);
+
     bool needsUnimp(MachineBasicBlock::iterator I, unsigned &StructSize);
 
     bool tryCombineRestoreWithPrevInst(MachineBasicBlock &MBB,
@@ -108,10 +124,12 @@ FunctionPass *llvm::createSparcDelaySlotFillerPass() {
 /// runOnMachineBasicBlock - Fill in delay slots for the given basic block.
 /// We assume there is only one delay slot per delayed instruction.
 ///
-bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
+bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB,
+                                    MBBPairVec &SplitMBBs) {
   bool Changed = false;
   Subtarget = &MBB.getParent()->getSubtarget<SparcSubtarget>();
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
+  MachineBasicBlock *FirstInstBlock = nullptr;
 
   for (MachineBasicBlock::iterator I = MBB.begin(); I != MBB.end(); ) {
     MachineBasicBlock::iterator MI = I;
@@ -147,9 +165,11 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
     ++FilledSlots;
     Changed = true;
 
-    if (D == MBB.end())
+    if (D == MBB.end()) {
+      if (findAnnulledDelayInstr(MBB, MI, FirstInstBlock, SplitMBBs))
+        continue;
       BuildMI(MBB, I, MI->getDebugLoc(), TII->get(SP::NOP));
-    else
+    } else
       MBB.splice(I, &MBB, D);
 
     unsigned structSize = 0;
@@ -229,7 +249,101 @@ Filler::findDelayInstr(MachineBasicBlock &MBB,
 
     return I;
   }
+
   return MBB.end();
+}
+
+bool hasBlockReference(MachineBasicBlock &MBB, MachineBasicBlock *Ref) {
+  for (auto &I : MBB)
+    for (unsigned i = 0, e = I.getNumOperands(); i != e; ++i)
+      if (I.getOperand(i).isMBB() && I.getOperand(i).getMBB() == Ref)
+        return true;
+  return false;
+}
+
+bool Filler::findAnnulledDelayInstr(MachineBasicBlock &MBB,
+                                    MachineBasicBlock::iterator slot,
+                                    MachineBasicBlock *&FirstInstBlock,
+                                    MBBPairVec &SplitMBBs) {
+
+  const TargetInstrInfo *TII = Subtarget->getInstrInfo();
+
+  // Always annull the delay instruction for unconditional branches.
+  if (slot->getOpcode() == SP::BA) {
+    slot->setDesc(TII->get(SP::BCONDA));
+    slot->addOperand(MachineOperand::CreateImm(SPCC::ICC_A));
+    return true;
+  }
+
+  // We can only annull the delay instruction for branches.
+  if (slot->getOpcode() != SP::BCOND)
+    return false;
+
+  MachineBasicBlock *TargetMBB = slot->getOperand(0).getMBB();
+  MachineBasicBlock::iterator I = TargetMBB->begin();
+
+  while (I != TargetMBB->end() && I->isMetaInstruction())
+    I++;
+
+  if (I == TargetMBB->end() || I->hasUnmodeledSideEffects() ||
+      I->isInlineAsm() || I->isPosition() || I->hasDelaySlot() ||
+      I->isBundledWithSucc() || I->isNotDuplicable())
+    return false;
+
+  MachineBasicBlock::iterator AfterI = std::next(I);
+
+  if (AfterI != TargetMBB->end() && AfterI->hasDelaySlot())
+    return false;
+
+  MachineFunction *MF = TargetMBB->getParent();
+  MachineBasicBlock *NewBlock;
+
+  if (slot->getParent() == TargetMBB) {
+    if (!FirstInstBlock) {
+      FirstInstBlock = MF->CreateMachineBasicBlock();
+      SplitMBBs.push_back(std::make_pair(&MBB, FirstInstBlock));
+    }
+    NewBlock = FirstInstBlock;
+  } else if (AfterI == TargetMBB->end() && TargetMBB->canFallThrough()) {
+    assert(TargetMBB->canFallThrough());
+    NewBlock = TargetMBB->getFallThrough();
+  } else {
+    NewBlock = MF->CreateMachineBasicBlock();
+
+    MachineFunction::iterator It = TargetMBB->getIterator();
+    MF->insert(++It, NewBlock);
+    NewBlock->splice(NewBlock->begin(), TargetMBB, AfterI, TargetMBB->end());
+    NewBlock->transferSuccessorsAndUpdatePHIs(TargetMBB);
+    TargetMBB->addSuccessor(NewBlock);
+  }
+
+  slot->getOperand(0).setMBB(NewBlock);
+  slot->setDesc(TII->get(SP::BCONDA));
+
+  if (hasBlockReference(MBB, TargetMBB))
+    MBB.addSuccessor(NewBlock);
+  else
+    MBB.replaceSuccessor(TargetMBB, NewBlock);
+
+  MIBundleBuilder(&*slot).append(MF->CloneMachineInstr(&*I));
+
+  return true;
+}
+
+void Filler::splitBlocksIfNeeded(MBBPairVec &SplitMBBs) {
+
+  for (auto B : SplitMBBs) {
+
+    MachineBasicBlock::iterator I = B.first->begin();
+    while (I->isMetaInstruction())
+      I++;
+
+    MachineFunction *MF = B.first->getParent();
+    MF->insert(std::next(B.first->getIterator()), B.second);
+    B.second->splice(B.second->begin(), B.first, std::next(I), B.first->end());
+    B.second->transferSuccessorsAndUpdatePHIs(B.first);
+    B.first->addSuccessor(B.second);
+  }
 }
 
 bool Filler::delayHasHazard(MachineBasicBlock::iterator candidate,
