@@ -7940,6 +7940,7 @@ public:
 
 private:
   ABIArgInfo classifyReturnType(QualType RetTy) const;
+  ABIArgInfo classifyArgumentType(QualType Ty) const;
   void computeInfo(CGFunctionInfo &FI) const override;
 };
 } // end anonymous namespace
@@ -7947,12 +7948,33 @@ private:
 
 ABIArgInfo
 SparcV8ABIInfo::classifyReturnType(QualType Ty) const {
-  if (Ty->isAnyComplexType()) {
+  uint64_t Size = getContext().getTypeSize(Ty);
+
+  if (Ty->isAnyComplexType())
     return ABIArgInfo::getDirect();
-  }
-  else {
-    return DefaultABIInfo::classifyReturnType(Ty);
-  }
+
+  if (Size > 64)
+    return getNaturalAlignIndirectInReg(Ty, false);
+
+  if (Ty->isVectorType())
+    return ABIArgInfo::getDirect(llvm::IntegerType::get(getVMContext(), Size));
+
+  return DefaultABIInfo::classifyReturnType(Ty);
+}
+
+ABIArgInfo SparcV8ABIInfo::classifyArgumentType(QualType Ty) const {
+  uint64_t Size = getContext().getTypeSize(Ty);
+
+  if (Ty->isAnyComplexType())
+    return ABIArgInfo::getDirect();
+
+  if (Size > 64)
+    return getNaturalAlignIndirectInReg(Ty, false);
+
+  if (Ty->isVectorType())
+    return ABIArgInfo::getDirect(llvm::IntegerType::get(getVMContext(), Size));
+
+  return DefaultABIInfo::classifyArgumentType(Ty);
 }
 
 void SparcV8ABIInfo::computeInfo(CGFunctionInfo &FI) const {
