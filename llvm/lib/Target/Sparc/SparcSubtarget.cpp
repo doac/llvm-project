@@ -41,6 +41,13 @@ SparcSubtarget &SparcSubtarget::initializeSubtargetDependencies(StringRef CPU,
   HasNoFSMULD = false;
   HasNoFMULS = false;
 
+  ReserveRegG2 = false;
+  ReserveRegG3 = false;
+  ReserveRegG4 = false;
+  ReserveRegG5 = !Is64Bit;
+  ReserveRegG6 = true;
+  ReserveRegG7 = true;
+
   // Leon features
   HasLeonCasa = false;
   HasUmacSmac = false;

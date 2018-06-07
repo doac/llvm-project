@@ -43,6 +43,12 @@ class SparcSubtarget : public SparcGenSubtargetInfo {
   bool UseSoftFloat;
   bool HasNoFSMULD;
   bool HasNoFMULS;
+  bool ReserveRegG2;
+  bool ReserveRegG3;
+  bool ReserveRegG4;
+  bool ReserveRegG5;
+  bool ReserveRegG6;
+  bool ReserveRegG7;
 
   // LEON features
   bool HasUmacSmac;
@@ -90,6 +96,12 @@ public:
   bool useSoftFloat() const { return UseSoftFloat; }
   bool hasNoFSMULD() const { return HasNoFSMULD; }
   bool hasNoFMULS() const { return HasNoFMULS; }
+  bool reserveRegG2() const { return ReserveRegG2; }
+  bool reserveRegG3() const { return ReserveRegG3; }
+  bool reserveRegG4() const { return ReserveRegG4; }
+  bool reserveRegG5() const { return ReserveRegG5; }
+  bool reserveRegG6() const { return ReserveRegG6; }
+  bool reserveRegG7() const { return ReserveRegG7; }
 
   // Leon options
   bool hasUmacSmac() const { return HasUmacSmac; }

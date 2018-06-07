@@ -277,13 +277,14 @@ void SparcAsmPrinter::EmitFunctionBodyStart() {
     return;
 
   const MachineRegisterInfo &MRI = MF->getRegInfo();
+  const BitVector &Reserved = MRI.getReservedRegs();
   const unsigned globalRegs[] = { SP::G2, SP::G3, SP::G6, SP::G7, 0 };
   for (unsigned i = 0; globalRegs[i] != 0; ++i) {
     unsigned reg = globalRegs[i];
     if (MRI.use_empty(reg))
       continue;
 
-    if  (reg == SP::G6 || reg == SP::G7)
+    if (Reserved[reg])
       getTargetStreamer().emitSparcRegisterIgnore(reg);
     else
       getTargetStreamer().emitSparcRegisterScratch(reg);

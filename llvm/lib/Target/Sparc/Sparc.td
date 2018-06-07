@@ -63,6 +63,27 @@ def UsePopc : SubtargetFeature<"popc", "UsePopc", "true",
 def FeatureSoftFloat : SubtargetFeature<"soft-float", "UseSoftFloat", "true",
                               "Use software emulation for floating point">;
 
+def ReserveRegG2 : SubtargetFeature<"reserve-reg-g2", "ReserveRegG2", "true",
+                                    "Reserve use of register %g2">;
+
+def ReserveRegG3 : SubtargetFeature<"reserve-reg-g3", "ReserveRegG3", "true",
+                                    "Reserve use of register %g3">;
+
+def ReserveRegG4 : SubtargetFeature<"reserve-reg-g4", "ReserveRegG4", "true",
+                                    "Reserve use of register %g4">;
+
+def ReserveRegG5 : SubtargetFeature<"reserve-reg-g5", "ReserveRegG5", "true",
+                                    "Reserve use of register %g5">;
+
+def UseRegG5 : SubtargetFeature<"use-reg-g5", "ReserveRegG5", "false",
+                                "Use %g5 as scratch register">;
+
+def UseRegG6 : SubtargetFeature<"use-reg-g6", "ReserveRegG6", "false",
+                                "Use %g6 as scratch register">;
+
+def UseRegG7 : SubtargetFeature<"use-reg-g7", "ReserveRegG7", "false",
+                                "Use %g7 as scratch register">;
+
 //==== Features added predmoninantly for LEON subtarget support
 include "LeonFeatures.td"
 

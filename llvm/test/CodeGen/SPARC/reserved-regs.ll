@@ -1,4 +1,8 @@
 ; RUN: llc -march=sparc -verify-machineinstrs < %s | FileCheck %s
+; RUN: llc -march=sparc -verify-machineinstrs -mattr=use-reg-g5 < %s | FileCheck %s -check-prefix=USEG5
+; RUN: llc -march=sparc -verify-machineinstrs -mattr=use-reg-g6 < %s | FileCheck %s -check-prefix=USEG6
+; RUN: not llc -march=sparc -verify-machineinstrs -mattr=use-reg-g7 < %s 2>&1 | FileCheck %s -check-prefix=USEG7
+; RUN: llc -march=sparc -verify-machineinstrs -mattr=reserve-reg-g3 < %s | FileCheck %s -check-prefix=RESG3
 
 @g = common global [32 x i32] zeroinitializer, align 16
 @h = common global [16 x i64] zeroinitializer, align 16
@@ -15,6 +19,10 @@
 ; CHECK-NOT: %o6
 ; CHECK-NOT: %i6
 ; CHECK-NOT: %i7
+; USEG5: %g5
+; USEG6: %g6
+; USEG7: %g7
+; RESG3-NOT: %g3
 ; CHECK: ret
 define void @use_all_i32_regs() {
 entry:
@@ -98,6 +106,10 @@ entry:
 ; CHECK-NOT: %o7
 ; CHECK-NOT: %i6
 ; CHECK-NOT: %i7
+; USEG5: %g5
+; USEG6: %g6
+; USEG7: %g7
+; RESG3-NOT: %g3
 ; CHECK: ret
 define void @use_all_i64_regs() {
 entry:
@@ -134,4 +146,13 @@ entry:
   store volatile i64 %15, i64* getelementptr inbounds ([16 x i64], [16 x i64]* @h, i64 0, i64 14), align 8
   store volatile i64 %0, i64* getelementptr inbounds ([16 x i64], [16 x i64]* @h, i64 0, i64 15), align 4
   ret void
+}
+
+@local_symbol = internal thread_local global i32 0
+
+; USEG7: LLVM ERROR: The TLS model requires register %g7
+define i32 @use_thread_pointer_register() {
+entry:
+  %0 = load i32, i32* @local_symbol, align 4
+  ret i32 %0
 }

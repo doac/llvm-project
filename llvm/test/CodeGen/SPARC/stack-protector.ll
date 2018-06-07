@@ -2,12 +2,14 @@
 ; RUN: llc -mtriple=sparc64-unknown-linux < %s | FileCheck %s --check-prefix=LINUX-64
 ; RUN: llc -mtriple=sparc-unknown-solaris < %s | FileCheck %s --check-prefix=GENERIC
 ; RUN: llc -mtriple=sparc64-unknown-solaris < %s | FileCheck %s --check-prefix=GENERIC
+; RUN: not llc -mtriple=sparc-unknown-linux -mattr=use-reg-g7 2>&1 < %s | FileCheck %s --check-prefix=LINUX-32-ERR
 
 ; LINUX-32: ld [%g7+20], [[REG1:%[ilo][0-9]*]]
 ; LINUX-64: ldx [%g7+40], [[REG1:%[ilo][0-9]*]]
 ; LINUX-32-NOT: __stack_chk_guard
 ; LINUX-64-NOT: __stack_chk_guard
 ; GENERIC: __stack_chk_guard
+; LINUX-32-ERR: Stack protector requires register %g7
 
 @"\01LC" = internal constant [11 x i8] c"buf == %s\0A\00"		; <[11 x i8]*> [#uses=1]
 

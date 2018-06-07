@@ -116,6 +116,8 @@ namespace llvm {
       return SP::I1;
     }
 
+    SDValue getThreadPointerRegister(SelectionDAG &DAG) const;
+
     /// Override to support customized stack guard loading.
     bool useLoadStackGuardNode() const override;
     void insertSSPDeclarations(Module &M) const override;

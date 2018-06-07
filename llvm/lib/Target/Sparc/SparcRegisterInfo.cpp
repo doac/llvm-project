@@ -30,10 +30,6 @@ using namespace llvm;
 #define GET_REGINFO_TARGET_DESC
 #include "SparcGenRegisterInfo.inc"
 
-static cl::opt<bool>
-ReserveAppRegisters("sparc-reserve-app-registers", cl::Hidden, cl::init(false),
-                    cl::desc("Reserve application registers (%g2-%g4)"));
-
 SparcRegisterInfo::SparcRegisterInfo() : SparcGenRegisterInfo(SP::O7) {}
 
 const MCPhysReg*
@@ -56,36 +52,25 @@ BitVector SparcRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
   // FIXME: G1 reserved for now for large imm generation by frame code.
-  Reserved.set(SP::G1);
+  markSuperRegs(Reserved, SP::G1);
 
-  // G1-G4 can be used in applications.
-  if (ReserveAppRegisters) {
-    Reserved.set(SP::G2);
-    Reserved.set(SP::G3);
-    Reserved.set(SP::G4);
-  }
-  // G5 is not reserved in 64 bit mode.
-  if (!Subtarget.is64Bit())
-    Reserved.set(SP::G5);
+  if (Subtarget.reserveRegG2())
+    markSuperRegs(Reserved, SP::G2);
+  if (Subtarget.reserveRegG3())
+    markSuperRegs(Reserved, SP::G3);
+  if (Subtarget.reserveRegG4())
+    markSuperRegs(Reserved, SP::G4);
+  if (Subtarget.reserveRegG5())
+    markSuperRegs(Reserved, SP::G5);
+  if (Subtarget.reserveRegG6())
+    markSuperRegs(Reserved, SP::G6);
+  if (Subtarget.reserveRegG7())
+    markSuperRegs(Reserved, SP::G7);
 
-  Reserved.set(SP::O6);
-  Reserved.set(SP::I6);
-  Reserved.set(SP::I7);
-  Reserved.set(SP::G0);
-  Reserved.set(SP::G6);
-  Reserved.set(SP::G7);
-
-  // Also reserve the register pair aliases covering the above
-  // registers, with the same conditions.
-  Reserved.set(SP::G0_G1);
-  if (ReserveAppRegisters)
-    Reserved.set(SP::G2_G3);
-  if (ReserveAppRegisters || !Subtarget.is64Bit())
-    Reserved.set(SP::G4_G5);
-
-  Reserved.set(SP::O6_O7);
-  Reserved.set(SP::I6_I7);
-  Reserved.set(SP::G6_G7);
+  markSuperRegs(Reserved, SP::O6);
+  markSuperRegs(Reserved, SP::I6);
+  markSuperRegs(Reserved, SP::I7);
+  markSuperRegs(Reserved, SP::G0);
 
   // Unaliased double registers are not available in non-V9 targets.
   if (!Subtarget.isV9()) {

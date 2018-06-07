@@ -2012,6 +2012,15 @@ SDValue SparcTargetLowering::LowerBlockAddress(SDValue Op,
   return makeAddress(Op, DAG);
 }
 
+SDValue SparcTargetLowering::getThreadPointerRegister(SelectionDAG &DAG) const {
+  const TargetRegisterInfo *TRI = Subtarget->getRegisterInfo();
+  if (!TRI->getReservedRegs(DAG.getMachineFunction())[SP::G7])
+    report_fatal_error("The TLS model requires register %g7");
+
+  EVT PtrVT = getPointerTy(DAG.getDataLayout());
+  return DAG.getRegister(SP::G7, PtrVT);
+}
+
 SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
                                                    SelectionDAG &DAG) const {
 
@@ -2101,7 +2110,7 @@ SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
                                  DL, PtrVT, Ptr,
                                  withTargetFlags(Op, ldTF, DAG));
     return DAG.getNode(SPISD::TLS_ADD, DL, PtrVT,
-                       DAG.getRegister(SP::G7, PtrVT), Offset,
+                       getThreadPointerRegister(DAG), Offset,
                        withTargetFlags(Op,
                                        SparcMCExpr::VK_Sparc_TLS_IE_ADD, DAG));
   }
@@ -2114,7 +2123,7 @@ SDValue SparcTargetLowering::LowerGlobalTLSAddress(SDValue Op,
   SDValue Offset =  DAG.getNode(ISD::XOR, DL, PtrVT, Hi, Lo);
 
   return DAG.getNode(ISD::ADD, DL, PtrVT,
-                     DAG.getRegister(SP::G7, PtrVT), Offset);
+                     getThreadPointerRegister(DAG), Offset);
 }
 
 SDValue SparcTargetLowering::LowerF128_LibCallArg(SDValue Chain,
@@ -2990,10 +2999,8 @@ SDValue SparcTargetLowering::LowerINTRINSIC_WO_CHAIN(SDValue Op,
   SDLoc dl(Op);
   switch (IntNo) {
   default: return SDValue();    // Don't custom lower most intrinsics.
-  case Intrinsic::thread_pointer: {
-    EVT PtrVT = getPointerTy(DAG.getDataLayout());
-    return DAG.getRegister(SP::G7, PtrVT);
-  }
+  case Intrinsic::thread_pointer:
+    return getThreadPointerRegister(DAG);
   }
 }
 
