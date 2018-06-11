@@ -12,7 +12,6 @@
 ; CHECK-LABEL: use_all_i32_regs:
 ; CHECK: save %sp
 ; CHECK-NOT: %g0
-; CHECK-NOT: %g1
 ; CHECK-NOT: %g5
 ; CHECK-NOT: %g6
 ; CHECK-NOT: %g7
@@ -97,7 +96,6 @@ entry:
 ; CHECK-LABEL: use_all_i64_regs:
 ; CHECK: save %sp
 ; CHECK-NOT: %g0
-; CHECK-NOT: %g1
 ; CHECK-NOT: %g4
 ; CHECK-NOT: %g5
 ; CHECK-NOT: %g6

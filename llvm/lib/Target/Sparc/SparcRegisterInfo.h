@@ -43,6 +43,13 @@ struct SparcRegisterInfo : public SparcGenRegisterInfo {
 
   bool canRealignStack(const MachineFunction &MF) const override;
 
+  bool requiresRegisterScavenging(const MachineFunction &MF) const override {
+    return true;
+  }
+
+  bool requiresFrameIndexScavenging(const MachineFunction &MF) const override {
+    return true;
+  }
 };
 
 } // end namespace llvm

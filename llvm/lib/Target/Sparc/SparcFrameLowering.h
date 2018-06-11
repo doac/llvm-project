@@ -39,6 +39,9 @@ public:
   void determineCalleeSaves(MachineFunction &MF, BitVector &SavedRegs,
                             RegScavenger *RS = nullptr) const override;
 
+  void processFunctionBeforeFrameFinalized(
+                        MachineFunction &MF, RegScavenger *RS) const override;
+    
   int getFrameIndexReference(const MachineFunction &MF, int FI,
                              unsigned &FrameReg) const override;
 

@@ -24,6 +24,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "llvm/CodeGen/RegisterScavenging.h"
 
 using namespace llvm;
 
@@ -45,6 +46,7 @@ void SparcFrameLowering::emitSPAdjustment(MachineFunction &MF,
                                           unsigned ADDri) const {
 
   DebugLoc dl;
+  unsigned ScratchReg;
   const SparcInstrInfo &TII =
       *static_cast<const SparcInstrInfo *>(MF.getSubtarget().getInstrInfo());
 
@@ -54,32 +56,33 @@ void SparcFrameLowering::emitSPAdjustment(MachineFunction &MF,
     return;
   }
 
-  // Emit this the hard way.  This clobbers G1 which we always know is
-  // available here.
+  ScratchReg = MF.getRegInfo().createVirtualRegister(&SP::LeafRegsRegClass);
+
+  // Emit this the hard way.
   if (NumBytes >= 0) {
     // Emit nonnegative numbers with sethi + or.
-    // sethi %hi(NumBytes), %g1
-    // or %g1, %lo(NumBytes), %g1
-    // add %sp, %g1, %sp
-    BuildMI(MBB, MBBI, dl, TII.get(SP::SETHIi), SP::G1)
+    // sethi %hi(NumBytes), %scratch
+    // or %scratch, %lo(NumBytes), %scratch
+    // add %sp, %scratch, %sp
+    BuildMI(MBB, MBBI, dl, TII.get(SP::SETHIi), ScratchReg)
       .addImm(HI22(NumBytes));
-    BuildMI(MBB, MBBI, dl, TII.get(SP::ORri), SP::G1)
-      .addReg(SP::G1).addImm(LO10(NumBytes));
+    BuildMI(MBB, MBBI, dl, TII.get(SP::ORri), ScratchReg)
+      .addReg(ScratchReg).addImm(LO10(NumBytes));
     BuildMI(MBB, MBBI, dl, TII.get(ADDrr), SP::O6)
-      .addReg(SP::O6).addReg(SP::G1);
+      .addReg(SP::O6).addReg(ScratchReg);
     return ;
   }
 
   // Emit negative numbers with sethi + xor.
-  // sethi %hix(NumBytes), %g1
-  // xor %g1, %lox(NumBytes), %g1
-  // add %sp, %g1, %sp
-  BuildMI(MBB, MBBI, dl, TII.get(SP::SETHIi), SP::G1)
+  // sethi %hix(NumBytes), %scratch
+  // xor %scratch, %lox(NumBytes), %scratch
+  // add %sp, %scratch, %sp
+  BuildMI(MBB, MBBI, dl, TII.get(SP::SETHIi), ScratchReg)
     .addImm(HIX22(NumBytes));
-  BuildMI(MBB, MBBI, dl, TII.get(SP::XORri), SP::G1)
-    .addReg(SP::G1).addImm(LOX10(NumBytes));
+  BuildMI(MBB, MBBI, dl, TII.get(SP::XORri), ScratchReg)
+    .addReg(ScratchReg).addImm(LOX10(NumBytes));
   BuildMI(MBB, MBBI, dl, TII.get(ADDrr), SP::O6)
-    .addReg(SP::O6).addReg(SP::G1);
+    .addReg(SP::O6).addReg(ScratchReg);
 }
 
 void SparcFrameLowering::emitPrologue(MachineFunction &MF,
@@ -304,6 +307,10 @@ int SparcFrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI
   int64_t FrameOffset = MF.getFrameInfo().getObjectOffset(FI) +
       Subtarget.getStackPointerBias();
 
+  if (UseFP && !hasFP(MF) && (FrameOffset < -4096) &&
+      (FrameOffset + MF.getFrameInfo().getStackSize()) <= 4095)
+    UseFP = false;
+
   if (UseFP) {
     FrameReg = RegInfo->getFrameRegister(MF);
     return FrameOffset;
@@ -392,5 +399,17 @@ void SparcFrameLowering::determineCalleeSaves(MachineFunction &MF,
 
     remapRegsForLeafProc(MF);
   }
+}
 
+void SparcFrameLowering::processFunctionBeforeFrameFinalized(
+    MachineFunction &MF, RegScavenger *RS) const {
+  const TargetRegisterInfo *RegInfo = MF.getSubtarget().getRegisterInfo();
+  MachineFrameInfo &MFI = MF.getFrameInfo();
+
+  const TargetRegisterClass *RC = &SP::IntRegsRegClass;
+  if (!isInt<13>(MFI.estimateStackSize(MF))) {
+    int RegScavFI = MFI.CreateStackObject(
+        RegInfo->getSpillSize(*RC), RegInfo->getSpillAlignment(*RC), false);
+    RS->addScavengingFrameIndex(RegScavFI);
+  }
 }

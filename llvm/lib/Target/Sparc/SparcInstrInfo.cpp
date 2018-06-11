@@ -410,7 +410,7 @@ storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
   if (RC == &SP::I64RegsRegClass)
     BuildMI(MBB, I, DL, get(SP::STXri)).addFrameIndex(FI).addImm(0)
       .addReg(SrcReg, getKillRegState(isKill)).addMemOperand(MMO);
-  else if (RC == &SP::IntRegsRegClass)
+  else if (RC == &SP::IntRegsRegClass || RC == &SP::LeafRegsRegClass)
     BuildMI(MBB, I, DL, get(SP::STri)).addFrameIndex(FI).addImm(0)
       .addReg(SrcReg, getKillRegState(isKill)).addMemOperand(MMO);
   else if (RC == &SP::IntPairRegClass)
@@ -448,7 +448,7 @@ loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
   if (RC == &SP::I64RegsRegClass)
     BuildMI(MBB, I, DL, get(SP::LDXri), DestReg).addFrameIndex(FI).addImm(0)
       .addMemOperand(MMO);
-  else if (RC == &SP::IntRegsRegClass)
+  else if (RC == &SP::IntRegsRegClass || RC == &SP::LeafRegsRegClass)
     BuildMI(MBB, I, DL, get(SP::LDri), DestReg).addFrameIndex(FI).addImm(0)
       .addMemOperand(MMO);
   else if (RC == &SP::IntPairRegClass)

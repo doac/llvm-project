@@ -51,8 +51,6 @@ SparcRegisterInfo::getRTCallPreservedMask(CallingConv::ID CC) const {
 BitVector SparcRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
-  // FIXME: G1 reserved for now for large imm generation by frame code.
-  markSuperRegs(Reserved, SP::G1);
 
   if (Subtarget.reserveRegG2())
     markSuperRegs(Reserved, SP::G2);
@@ -107,41 +105,42 @@ static void replaceFI(MachineFunction &MF, MachineBasicBlock::iterator II,
   }
 
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
+  SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
+  const TargetRegisterClass *RC =
+      FuncInfo->isLeafProc() ? &SP::LeafRegsRegClass : &SP::IntRegsRegClass;
+  unsigned ScratchReg = MF.getRegInfo().createVirtualRegister(RC);
 
-  // FIXME: it would be better to scavenge a register here instead of
-  // reserving G1 all of the time.
   if (Offset >= 0) {
     // Emit nonnegaive immediates with sethi + or.
-    // sethi %hi(Offset), %g1
-    // add %g1, %fp, %g1
-    // Insert G1+%lo(offset) into the user.
-    BuildMI(*MI.getParent(), II, dl, TII.get(SP::SETHIi), SP::G1)
+    // sethi %hi(Offset), %scratch
+    // add %scratch, %fp, %scratch
+    // Insert %scratch+%lo(offset) into the user.
+    BuildMI(*MI.getParent(), II, dl, TII.get(SP::SETHIi), ScratchReg)
       .addImm(HI22(Offset));
 
-
-    // Emit G1 = G1 + I6
-    BuildMI(*MI.getParent(), II, dl, TII.get(SP::ADDrr), SP::G1).addReg(SP::G1)
+    // Emit scratch = scratch + I6
+    BuildMI(*MI.getParent(), II, dl, TII.get(SP::ADDrr), ScratchReg).addReg(ScratchReg)
       .addReg(FramePtr);
-    // Insert: G1+%lo(offset) into the user.
-    MI.getOperand(FIOperandNum).ChangeToRegister(SP::G1, false);
+    // Insert: scratchreg+%lo(offset) into the user.
+    MI.getOperand(FIOperandNum).ChangeToRegister(ScratchReg, false);
     MI.getOperand(FIOperandNum + 1).ChangeToImmediate(LO10(Offset));
     return;
   }
 
   // Emit Negative numbers with sethi + xor
-  // sethi %hix(Offset), %g1
-  // xor  %g1, %lox(offset), %g1
-  // add %g1, %fp, %g1
-  // Insert: G1 + 0 into the user.
-  BuildMI(*MI.getParent(), II, dl, TII.get(SP::SETHIi), SP::G1)
+  // sethi %hix(Offset), %scratch
+  // xor  %scratch, %lox(offset), %scratch
+  // add %scratch, %fp, %scratch
+  // Insert: scratch + 0 into the user.
+  BuildMI(*MI.getParent(), II, dl, TII.get(SP::SETHIi), ScratchReg)
     .addImm(HIX22(Offset));
-  BuildMI(*MI.getParent(), II, dl, TII.get(SP::XORri), SP::G1)
-    .addReg(SP::G1).addImm(LOX10(Offset));
+  BuildMI(*MI.getParent(), II, dl, TII.get(SP::XORri), ScratchReg)
+    .addReg(ScratchReg).addImm(LOX10(Offset));
 
-  BuildMI(*MI.getParent(), II, dl, TII.get(SP::ADDrr), SP::G1).addReg(SP::G1)
+  BuildMI(*MI.getParent(), II, dl, TII.get(SP::ADDrr), ScratchReg).addReg(ScratchReg)
     .addReg(FramePtr);
-  // Insert: G1+%lo(offset) into the user.
-  MI.getOperand(FIOperandNum).ChangeToRegister(SP::G1, false);
+  // Insert: ScratchReg+%lo(offset) into the user.
+  MI.getOperand(FIOperandNum).ChangeToRegister(ScratchReg, false);
   MI.getOperand(FIOperandNum + 1).ChangeToImmediate(0);
 }
 
