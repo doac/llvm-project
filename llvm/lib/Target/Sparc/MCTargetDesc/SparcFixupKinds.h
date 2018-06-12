@@ -93,6 +93,11 @@ namespace llvm {
       fixup_sparc_tls_le_hix22,
       fixup_sparc_tls_le_lox10,
 
+      /// fixups for GOTdata_op model
+      fixup_sparc_gdop_hix22,
+      fixup_sparc_gdop_lox10,
+      fixup_sparc_gdop,
+
       // Marker
       LastTargetFixupKind,
       NumTargetFixupKinds = LastTargetFixupKind - FirstTargetFixupKind

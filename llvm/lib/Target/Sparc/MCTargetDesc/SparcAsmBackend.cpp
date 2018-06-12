@@ -96,6 +96,9 @@ static unsigned adjustFixupValue(unsigned Kind, uint64_t Value) {
   case Sparc::fixup_sparc_tls_ie_ld:
   case Sparc::fixup_sparc_tls_ie_ldx:
   case Sparc::fixup_sparc_tls_ie_add:
+  case Sparc::fixup_sparc_gdop:
+  case Sparc::fixup_sparc_gdop_hix22:
+  case Sparc::fixup_sparc_gdop_lox10:
     return 0;
   }
 }
@@ -169,7 +172,10 @@ namespace {
         { "fixup_sparc_tls_ie_ldx",     0,  0,  0 },
         { "fixup_sparc_tls_ie_add",     0,  0,  0 },
         { "fixup_sparc_tls_le_hix22",   0,  0,  0 },
-        { "fixup_sparc_tls_le_lox10",   0,  0,  0 }
+        { "fixup_sparc_tls_le_lox10",   0,  0,  0 },
+        { "fixup_sparc_gdop",           0,  0,  0 },
+        { "fixup_sparc_gdop_hix22",     0,  0,  0 },
+        { "fixup_sparc_gdop_lox10",     0,  0,  0 },
       };
 
       const static MCFixupKindInfo InfosLE[Sparc::NumTargetFixupKinds] = {
@@ -210,7 +216,10 @@ namespace {
         { "fixup_sparc_tls_ie_ldx",     0,  0,  0 },
         { "fixup_sparc_tls_ie_add",     0,  0,  0 },
         { "fixup_sparc_tls_le_hix22",   0,  0,  0 },
-        { "fixup_sparc_tls_le_lox10",   0,  0,  0 }
+        { "fixup_sparc_tls_le_lox10",   0,  0,  0 },
+        { "fixup_sparc_gdop",           0,  0,  0 },
+        { "fixup_sparc_gdop_hix22",     0,  0,  0 },
+        { "fixup_sparc_gdop_lox10",     0,  0,  0 },
       };
 
       if (Kind < FirstTargetFixupKind)

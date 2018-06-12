@@ -80,6 +80,9 @@ bool SparcMCExpr::printVariantKind(raw_ostream &OS, VariantKind Kind)
   case VK_Sparc_TLS_IE_ADD:    OS << "%tie_add(";    break;
   case VK_Sparc_TLS_LE_HIX22:  OS << "%tle_hix22(";  break;
   case VK_Sparc_TLS_LE_LOX10:  OS << "%tle_lox10(";  break;
+  case VK_Sparc_GDOP_HIX22:    OS << "%gdop_hix22("; break;
+  case VK_Sparc_GDOP_LOX10:    OS << "%gdop_lox10("; break;
+  case VK_Sparc_GDOP:          OS << "%gdop(";       break;
   }
   return closeParen;
 }
@@ -118,6 +121,9 @@ SparcMCExpr::VariantKind SparcMCExpr::parseVariantKind(StringRef name)
     .Case("tie_add",    VK_Sparc_TLS_IE_ADD)
     .Case("tle_hix22",  VK_Sparc_TLS_LE_HIX22)
     .Case("tle_lox10",  VK_Sparc_TLS_LE_LOX10)
+    .Case("gdop_hix22", VK_Sparc_GDOP_HIX22)
+    .Case("gdop_lox10", VK_Sparc_GDOP_LOX10)
+    .Case("gdop",       VK_Sparc_GDOP)
     .Default(VK_Sparc_None);
 }
 
@@ -156,6 +162,9 @@ Sparc::Fixups SparcMCExpr::getFixupKind(SparcMCExpr::VariantKind Kind) {
   case VK_Sparc_TLS_IE_ADD:    return Sparc::fixup_sparc_tls_ie_add;
   case VK_Sparc_TLS_LE_HIX22:  return Sparc::fixup_sparc_tls_le_hix22;
   case VK_Sparc_TLS_LE_LOX10:  return Sparc::fixup_sparc_tls_le_lox10;
+  case VK_Sparc_GDOP_HIX22:    return Sparc::fixup_sparc_gdop_hix22;
+  case VK_Sparc_GDOP_LOX10:    return Sparc::fixup_sparc_gdop_lox10;
+  case VK_Sparc_GDOP:          return Sparc::fixup_sparc_gdop;
   }
 }
 

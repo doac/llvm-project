@@ -108,6 +108,9 @@ unsigned SparcELFObjectWriter::getRelocType(MCContext &Ctx,
   case Sparc::fixup_sparc_tls_ie_add:    return ELF::R_SPARC_TLS_IE_ADD;
   case Sparc::fixup_sparc_tls_le_hix22:  return ELF::R_SPARC_TLS_LE_HIX22;
   case Sparc::fixup_sparc_tls_le_lox10:  return ELF::R_SPARC_TLS_LE_LOX10;
+  case Sparc::fixup_sparc_gdop:          return ELF::R_SPARC_GOTDATA_OP;
+  case Sparc::fixup_sparc_gdop_hix22:    return ELF::R_SPARC_GOTDATA_OP_HIX22;
+  case Sparc::fixup_sparc_gdop_lox10:    return ELF::R_SPARC_GOTDATA_OP_LOX10;
   }
 
   return ELF::R_SPARC_NONE;

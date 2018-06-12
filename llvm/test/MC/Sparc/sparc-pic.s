@@ -16,6 +16,9 @@
 ! PIC-NEXT:   0x{{[0-9,A-F]+}} R_SPARC_GOT10 .LC0 0x0
 ! PIC-NEXT:   0x{{[0-9,A-F]+}} R_SPARC_WPLT30 bar 0x0
 ! PIC:        0x{{[0-9,A-F]+}} R_SPARC_GOT13 value 0x0
+! PIC:        0x{{[0-9,A-F]+}} R_SPARC_GOTDATA_OP_HIX22 AGlobalVar 0x0
+! PIC:        0x{{[0-9,A-F]+}} R_SPARC_GOTDATA_OP_LOX10 AGlobalVar 0x0
+! PIC:        0x{{[0-9,A-F]+}} R_SPARC_GOTDATA_OP AGlobalVar 0x0
 ! PIC:      ]
 
 ! NOPIC:      Relocations [
@@ -101,3 +104,21 @@ pic13:
         restore
 .Lfunc_end0:
         .size pic13, .Lfunc_end0-pic13
+
+! Test GOTdata_op model relocations
+
+gotdataop:
+        save %sp, -128, %sp
+.Ltmpg0:
+        call .Ltmpg1
+.Ltmpg2:
+        sethi %hi(_GLOBAL_OFFSET_TABLE_+(.Ltmpg2-.Ltmpg0)), %i0
+.Ltmpg1:
+        or %i0, %lo(_GLOBAL_OFFSET_TABLE_+(.Ltmpg1-.Ltmpg0)), %i0
+        add %i0, %o7, %i0
+        sethi %gdop_hix22(AGlobalVar), %i1
+        xor %i1, %gdop_lox10(AGlobalVar), %i1
+        ld [%i0+%i1], %i0, %gdop(AGlobalVar)
+        ldsw [%i0], %i0
+        ret
+        restore
