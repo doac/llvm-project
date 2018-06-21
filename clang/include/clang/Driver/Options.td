@@ -124,6 +124,8 @@ def pedantic_Group : OptionGroup<"<pedantic group>">, Group<f_Group>,
                      DocFlatten;
 def opencl_Group : OptionGroup<"<opencl group>">, Group<f_Group>,
                    DocName<"OpenCL flags">;
+def q_Group : OptionGroup<"<q group>">, Group<CompileOnly_Group>,
+              DocName<"RCC/BCC compilation options">;
 
 def m_Group : OptionGroup<"<m group>">, Group<CompileOnly_Group>,
               DocName<"Target-dependent compilation options">;
@@ -3181,6 +3183,12 @@ defm stack_arrays : BooleanFFlag<"stack-arrays">, Group<gfortran_Group>;
 defm underscoring : BooleanFFlag<"underscoring">, Group<gfortran_Group>;
 defm whole_file : BooleanFFlag<"whole-file">, Group<gfortran_Group>;
 
+// "q" flags for BCC/RCC
+def qbsp : Joined<["-"], "qbsp=">, Group<q_Group>;
+def qsvt : Flag<["-"], "qsvt">, Group<q_Group>;
+def qnano : Flag<["-"], "qnano">, Group<q_Group>;
+def qnolinkcmds : Flag<["-"], "qnolinkcmds">, Group<q_Group>;
+def qrtems : Flag<["-"], "qrtems">, Group<q_Group>;
 
 include "CC1Options.td"
 

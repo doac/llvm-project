@@ -22,6 +22,7 @@
 #include "ToolChains/DragonFly.h"
 #include "ToolChains/FreeBSD.h"
 #include "ToolChains/Fuchsia.h"
+#include "ToolChains/Gaisler.h"
 #include "ToolChains/Gnu.h"
 #include "ToolChains/HIP.h"
 #include "ToolChains/Haiku.h"
@@ -4650,6 +4651,9 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
         if (Target.getVendor() == llvm::Triple::Myriad)
           TC = llvm::make_unique<toolchains::MyriadToolChain>(*this, Target,
                                                               Args);
+        else if (Target.getVendor() == llvm::Triple::Gaisler)
+          TC = llvm::make_unique<toolchains::GaislerToolChain>(*this, Target,
+                                                               Args);
         else if (toolchains::BareMetal::handlesTarget(Target))
           TC = llvm::make_unique<toolchains::BareMetal>(*this, Target, Args);
         else if (Target.isOSBinFormatELF())
