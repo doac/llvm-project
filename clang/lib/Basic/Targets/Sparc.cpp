@@ -142,6 +142,7 @@ void SparcTargetInfo::getTargetDefines(const LangOptions &Opts,
                                        MacroBuilder &Builder) const {
   DefineStd(Builder, "sparc", Opts);
   Builder.defineMacro("__REGISTER_PREFIX__", "");
+  Builder.defineMacro("__USE_INIT_FINI__", "1");
 
   if (SoftFloat)
     Builder.defineMacro("SOFT_FLOAT", "1");
