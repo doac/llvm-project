@@ -30,6 +30,7 @@ const char *sparc::getSparcAsmModeForCPU(StringRef Name,
         .Default("-Av9");
   } else {
     return llvm::StringSwitch<const char *>(Name)
+        .Case("v7", "-Av7")
         .Case("v8", "-Av8")
         .Case("supersparc", "-Av8")
         .Case("sparclite", "-Asparclite")

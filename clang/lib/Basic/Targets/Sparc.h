@@ -87,9 +87,9 @@ public:
     return "";
   }
 
-  // No Sparc V7 for now, the backend doesn't support it anyway.
   enum CPUKind {
     CK_GENERIC,
+    CK_V7,
     CK_V8,
     CK_SUPERSPARC,
     CK_SPARCLITE,
@@ -127,6 +127,7 @@ public:
   } CPU = CK_GENERIC;
 
   enum CPUGeneration {
+    CG_V7,
     CG_V8,
     CG_V9,
   };

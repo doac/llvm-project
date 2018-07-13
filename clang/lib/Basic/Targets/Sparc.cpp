@@ -66,6 +66,7 @@ struct SparcCPUInfo {
 };
 
 static constexpr SparcCPUInfo CPUInfo[] = {
+    {{"v7"}, SparcTargetInfo::CK_V7, SparcTargetInfo::CG_V7},
     {{"v8"}, SparcTargetInfo::CK_V8, SparcTargetInfo::CG_V8},
     {{"supersparc"}, SparcTargetInfo::CK_SUPERSPARC, SparcTargetInfo::CG_V8},
     {{"sparclite"}, SparcTargetInfo::CK_SPARCLITE, SparcTargetInfo::CG_V8},
@@ -149,6 +150,7 @@ void SparcV8TargetInfo::getTargetDefines(const LangOptions &Opts,
                                          MacroBuilder &Builder) const {
   SparcTargetInfo::getTargetDefines(Opts, Builder);
   switch (getCPUGeneration(CPU)) {
+  case CG_V7: break;
   case CG_V8:
     Builder.defineMacro("__sparcv8");
     if (getTriple().getOS() != llvm::Triple::Solaris)
