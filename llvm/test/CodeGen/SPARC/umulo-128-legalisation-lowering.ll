@@ -70,8 +70,7 @@ define { i128, i8 } @muloti_test(i128 %l, i128 %r) unnamed_addr #0 {
 ; SPARC-NEXT:  .LBB0_6: ! %start
 ; SPARC-NEXT:    xor %g2, %o0, %i1
 ; SPARC-NEXT:    xor %i3, %o1, %g4
-; SPARC-NEXT:    or %g4, %i1, %i1
-; SPARC-NEXT:    cmp %i1, 0
+; SPARC-NEXT:    orcc %g4, %i1, %g0
 ; SPARC-NEXT:    be .LBB0_8
 ; SPARC-NEXT:    mov %l0, %g4
 ; SPARC-NEXT:  ! %bb.7: ! %start
@@ -98,16 +97,16 @@ define { i128, i8 } @muloti_test(i128 %l, i128 %r) unnamed_addr #0 {
 ; SPARC-NEXT:  .LBB0_14: ! %start
 ; SPARC-NEXT:    cmp %i4, 0
 ; SPARC-NEXT:    bne .LBB0_16
-; SPARC-NEXT:    mov %g3, %o1
+; SPARC-NEXT:    mov %g3, %l5
 ; SPARC-NEXT:  ! %bb.15: ! %start
-; SPARC-NEXT:    mov %l0, %o1
+; SPARC-NEXT:    mov %l0, %l5
 ; SPARC-NEXT:  .LBB0_16: ! %start
 ; SPARC-NEXT:    ld [%fp+-24], %i5 ! 4-byte Folded Reload
 ; SPARC-NEXT:    cmp %i5, 0
 ; SPARC-NEXT:    bne .LBB0_18
-; SPARC-NEXT:    mov %g3, %l5
+; SPARC-NEXT:    mov %g3, %l2
 ; SPARC-NEXT:  ! %bb.17: ! %start
-; SPARC-NEXT:    mov %l0, %l5
+; SPARC-NEXT:    mov %l0, %l2
 ; SPARC-NEXT:  .LBB0_18: ! %start
 ; SPARC-NEXT:    ld [%fp+-20], %i5 ! 4-byte Folded Reload
 ; SPARC-NEXT:    cmp %i5, 0
@@ -124,9 +123,9 @@ define { i128, i8 } @muloti_test(i128 %l, i128 %r) unnamed_addr #0 {
 ; SPARC-NEXT:  .LBB0_22: ! %start
 ; SPARC-NEXT:    cmp %i0, 0
 ; SPARC-NEXT:    be .LBB0_24
-; SPARC-NEXT:    mov %l0, %l2
+; SPARC-NEXT:    mov %l0, %l4
 ; SPARC-NEXT:  ! %bb.23: ! %start
-; SPARC-NEXT:    mov %l6, %l2
+; SPARC-NEXT:    mov %l6, %l4
 ; SPARC-NEXT:  .LBB0_24: ! %start
 ; SPARC-NEXT:    cmp %l3, 0
 ; SPARC-NEXT:    bne .LBB0_26
@@ -136,33 +135,32 @@ define { i128, i8 } @muloti_test(i128 %l, i128 %r) unnamed_addr #0 {
 ; SPARC-NEXT:  .LBB0_26: ! %start
 ; SPARC-NEXT:    cmp %i1, 0
 ; SPARC-NEXT:    bne .LBB0_28
-; SPARC-NEXT:    mov %g3, %l4
+; SPARC-NEXT:    mov %g3, %l6
 ; SPARC-NEXT:  ! %bb.27: ! %start
-; SPARC-NEXT:    mov %l0, %l4
+; SPARC-NEXT:    mov %l0, %l6
 ; SPARC-NEXT:  .LBB0_28: ! %start
-; SPARC-NEXT:    and %o1, %i2, %i2
+; SPARC-NEXT:    and %l5, %i2, %i2
 ; SPARC-NEXT:    ld [%fp+-16], %i0 ! 4-byte Folded Reload
 ; SPARC-NEXT:    cmp %i0, 0
-; SPARC-NEXT:    and %l4, %l3, %l4
+; SPARC-NEXT:    and %l6, %l3, %l3
 ; SPARC-NEXT:    bne .LBB0_30
-; SPARC-NEXT:    mov %g3, %l6
+; SPARC-NEXT:    mov %g3, %l5
 ; SPARC-NEXT:  ! %bb.29: ! %start
-; SPARC-NEXT:    mov %l0, %l6
+; SPARC-NEXT:    mov %l0, %l5
 ; SPARC-NEXT:  .LBB0_30: ! %start
-; SPARC-NEXT:    or %i2, %l5, %l3
+; SPARC-NEXT:    or %i2, %l2, %i2
 ; SPARC-NEXT:    ld [%fp+-12], %i0 ! 4-byte Folded Reload
 ; SPARC-NEXT:    cmp %i0, 0
-; SPARC-NEXT:    or %l4, %l6, %i2
+; SPARC-NEXT:    or %l3, %l5, %l2
 ; SPARC-NEXT:    bne .LBB0_32
-; SPARC-NEXT:    mov %g3, %l4
+; SPARC-NEXT:    mov %g3, %l3
 ; SPARC-NEXT:  ! %bb.31: ! %start
-; SPARC-NEXT:    mov %l0, %l4
+; SPARC-NEXT:    mov %l0, %l3
 ; SPARC-NEXT:  .LBB0_32: ! %start
-; SPARC-NEXT:    or %l3, %l1, %l1
+; SPARC-NEXT:    or %i2, %l1, %l1
 ; SPARC-NEXT:    ld [%fp+-8], %i0 ! 4-byte Folded Reload
-; SPARC-NEXT:    or %i0, %i4, %i0
-; SPARC-NEXT:    cmp %i0, 0
-; SPARC-NEXT:    or %i2, %l4, %i5
+; SPARC-NEXT:    orcc %i0, %i4, %g0
+; SPARC-NEXT:    or %l2, %l3, %i5
 ; SPARC-NEXT:    bne .LBB0_34
 ; SPARC-NEXT:    mov %g3, %i2
 ; SPARC-NEXT:  ! %bb.33: ! %start
@@ -170,10 +168,9 @@ define { i128, i8 } @muloti_test(i128 %l, i128 %r) unnamed_addr #0 {
 ; SPARC-NEXT:  .LBB0_34: ! %start
 ; SPARC-NEXT:    or %l1, %o0, %i4
 ; SPARC-NEXT:    ld [%fp+-4], %i0 ! 4-byte Folded Reload
-; SPARC-NEXT:    or %i0, %i1, %i0
-; SPARC-NEXT:    cmp %i0, 0
+; SPARC-NEXT:    orcc %i0, %i1, %g0
 ; SPARC-NEXT:    bne .LBB0_36
-; SPARC-NEXT:    or %i5, %l2, %i0
+; SPARC-NEXT:    or %i5, %l4, %i0
 ; SPARC-NEXT:  ! %bb.35: ! %start
 ; SPARC-NEXT:    mov %l0, %g3
 ; SPARC-NEXT:  .LBB0_36: ! %start

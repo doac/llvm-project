@@ -731,7 +731,7 @@ let Uses = [ICC] in
   defm SUBC   : F3_12np <"subx", 0b001100>;
 
 // cmp (from Section A.3) is a specialized alias for subcc
-let Defs = [ICC], rd = 0 in {
+let Defs = [ICC], rd = 0, isCompare = 1 in {
   def CMPrr   : F3_1<2, 0b010100,
                      (outs), (ins IntRegs:$rs1, IntRegs:$rs2),
                      "cmp $rs1, $rs2",

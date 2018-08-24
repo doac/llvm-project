@@ -99,6 +99,14 @@ public:
 
   unsigned getGlobalBaseReg(MachineFunction *MF) const;
 
+  bool analyzeCompare(const MachineInstr &MI, unsigned &SrcReg,
+                      unsigned &SrcReg2, int &CmpMask,
+                      int &CmpValue) const override;
+
+  bool optimizeCompareInstr(MachineInstr &CmpInstr, unsigned SrcReg,
+                            unsigned SrcReg2, int CmpMask, int CmpValue,
+                            const MachineRegisterInfo *MRI) const override;
+
   // Lower pseudo instructions after register allocation.
   bool expandPostRAPseudo(MachineInstr &MI) const override;
 };
