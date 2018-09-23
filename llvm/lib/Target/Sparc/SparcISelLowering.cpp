@@ -2533,6 +2533,34 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG,
   // an CMP[IF]CC/SELECT_[IF]CC pair, find the original compared values.
   LookThroughSetCC(LHS, RHS, CC, SPCC);
 
+  if (CC == ISD::SETEQ || CC == ISD::SETNE) {
+
+    ConstantSDNode *TrueValConst = dyn_cast<ConstantSDNode>(TrueVal);
+    ConstantSDNode *FalseValConst = dyn_cast<ConstantSDNode>(FalseVal);
+    bool Equal = CC == ISD::SETEQ;
+
+    if (TrueValConst && TrueValConst->isNullValue()) {
+      Equal = !Equal;
+      std::swap(TrueValConst, FalseValConst);
+      std::swap(TrueVal, FalseVal);
+    }
+
+    if (FalseValConst && FalseValConst->isNullValue()) {
+      bool isOne = TrueValConst && TrueValConst->isOne();
+
+      SDValue ZeroIfEq = DAG.getNode(ISD::XOR, dl, MVT::i32, LHS, RHS);
+      SDValue Zero = DAG.getRegister(SP::G0, MVT::i32);
+      SDValue CarryIfNotEq = DAG.getNode(SPISD::CMPICC, dl, MVT::Glue, Zero, ZeroIfEq);
+
+      SDValue Const = Equal ? DAG.getConstant(-1, dl, MVT::i32) : Zero;
+      Opc = (Equal ^ isOne) ? ISD::ADDE : ISD::SUBE;
+
+      SDValue GetCarry = DAG.getNode(Opc, dl, MVT::i32, Zero, Const, CarryIfNotEq);
+      return isOne ? GetCarry
+                   : DAG.getNode(ISD::AND, dl, MVT::i32, TrueVal, GetCarry);
+    }
+  }
+
   SDValue CompareFlag;
   if (LHS.getValueType().isInteger()) {
     CompareFlag = DAG.getNode(SPISD::CMPICC, dl, MVT::Glue, LHS, RHS);
