@@ -113,4 +113,6 @@ void sparc::getSparcTargetFeatures(const Driver &D, const ArgList &Args,
   sparc::FloatABI FloatABI = sparc::getSparcFloatABI(D, Args);
   if (FloatABI == sparc::FloatABI::Soft)
     Features.push_back("+soft-float");
+  if (Args.hasFlag(options::OPT_mflat, options::OPT_mno_flat, false))
+    Features.push_back("+flat");
 }
