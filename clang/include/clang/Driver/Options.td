@@ -2108,6 +2108,31 @@ def mflat : Flag<["-"], "mflat">, Group<m_sparc_Features_Group>,
 def mno_flat : Flag<["-"], "mno-flat">, Group<m_sparc_Features_Group>,
   HelpText<"Disable flat register mode">;
 
+def ffixed_g2 : Flag<["-"], "ffixed-g2">, Group<m_sparc_Features_Group>,
+  HelpText<"Reserve use of register %g2">;
+def fcall_used_g2 : Flag<["-"], "fcall-used-g2">, Group<m_sparc_Features_Group>,
+  HelpText<"Use %g2 as scratch register">;
+def ffixed_g3 : Flag<["-"], "ffixed-g3">, Group<m_sparc_Features_Group>,
+  HelpText<"Reserve use of register %g3">;
+def fcall_used_g3 : Flag<["-"], "fcall-used-g3">, Group<m_sparc_Features_Group>,
+  HelpText<"Use %g3 as scratch register">;
+def ffixed_g4 : Flag<["-"], "ffixed-g4">, Group<m_sparc_Features_Group>,
+  HelpText<"Reserve use of register %g4">;
+def fcall_used_g4 : Flag<["-"], "fcall-used-g4">, Group<m_sparc_Features_Group>,
+  HelpText<"Use %g4 as scratch register">;
+def fcall_used_g5 : Flag<["-"], "fcall-used-g5">, Group<m_sparc_Features_Group>,
+  HelpText<"Use %g5 as scratch register">;
+def ffixed_g5 : Flag<["-"], "ffixed-g5">, Group<m_sparc_Features_Group>,
+  HelpText<"Reserve use of register %g5">;
+def fcall_used_g6 : Flag<["-"], "fcall-used-g6">, Group<m_sparc_Features_Group>,
+  HelpText<"Use %g6 as scratch register">;
+def ffixed_g6 : Flag<["-"], "ffixed-g6">, Group<m_sparc_Features_Group>,
+  HelpText<"Reserve use of register %g6">;
+def fcall_used_g7 : Flag<["-"], "fcall-used-g7">, Group<m_sparc_Features_Group>,
+  HelpText<"Use %g7 as scratch register">;
+def ffixed_g7 : Flag<["-"], "ffixed-g7">, Group<m_sparc_Features_Group>,
+  HelpText<"Reserve use of register %g7">;
+
 def munaligned_access : Flag<["-"], "munaligned-access">, Group<m_arm_Features_Group>,
   HelpText<"Allow memory accesses to be unaligned (AArch32/AArch64 only)">;
 def mno_unaligned_access : Flag<["-"], "mno-unaligned-access">, Group<m_arm_Features_Group>,

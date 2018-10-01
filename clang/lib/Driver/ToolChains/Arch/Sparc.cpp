@@ -115,4 +115,19 @@ void sparc::getSparcTargetFeatures(const Driver &D, const ArgList &Args,
     Features.push_back("+soft-float");
   if (Args.hasFlag(options::OPT_mflat, options::OPT_mno_flat, false))
     Features.push_back("+flat");
+
+  if (Args.hasFlag(options::OPT_ffixed_g2, options::OPT_fcall_used_g2, false))
+    Features.push_back("+reserve-reg-g2");
+  if (Args.hasFlag(options::OPT_ffixed_g3, options::OPT_fcall_used_g3, false))
+    Features.push_back("+reserve-reg-g3");
+  if (Args.hasFlag(options::OPT_ffixed_g4, options::OPT_fcall_used_g4, false))
+    Features.push_back("+reserve-reg-g4");
+  if (Args.hasFlag(options::OPT_ffixed_g5, options::OPT_fcall_used_g5, false))
+    Features.push_back("+reserve-reg-g5");
+  if (Args.hasFlag(options::OPT_fcall_used_g5, options::OPT_ffixed_g5, false))
+    Features.push_back("+use-reg-g5");
+  if (Args.hasFlag(options::OPT_fcall_used_g6, options::OPT_ffixed_g6, false))
+    Features.push_back("+use-reg-g6");
+  if (Args.hasFlag(options::OPT_fcall_used_g7, options::OPT_ffixed_g7, false))
+    Features.push_back("+use-reg-g7");
 }
