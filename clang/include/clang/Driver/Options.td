@@ -2108,6 +2108,9 @@ def mflat : Flag<["-"], "mflat">, Group<m_sparc_Features_Group>,
 def mno_flat : Flag<["-"], "mno-flat">, Group<m_sparc_Features_Group>,
   HelpText<"Disable flat register mode">;
 
+def mfix_gr712rc : Flag<["-"], "mfix-gr712rc">, Group<m_sparc_Features_Group>,
+  HelpText<"Enable workarounds for GR712RC errata">;
+
 def ffixed_g2 : Flag<["-"], "ffixed-g2">, Group<m_sparc_Features_Group>,
   HelpText<"Reserve use of register %g2">;
 def fcall_used_g2 : Flag<["-"], "fcall-used-g2">, Group<m_sparc_Features_Group>,

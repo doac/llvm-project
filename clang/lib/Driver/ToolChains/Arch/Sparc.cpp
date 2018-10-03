@@ -116,6 +116,13 @@ void sparc::getSparcTargetFeatures(const Driver &D, const ArgList &Args,
   if (Args.hasFlag(options::OPT_mflat, options::OPT_mno_flat, false))
     Features.push_back("+flat");
 
+  if (Args.hasArg(options::OPT_mfix_gr712rc)) {
+    Features.push_back("+fix-tn0009");
+    Features.push_back("+fix-tn0011");
+    Features.push_back("+fix-tn0012");
+    Features.push_back("+fix-tn0013");
+  }
+
   if (Args.hasFlag(options::OPT_ffixed_g2, options::OPT_fcall_used_g2, false))
     Features.push_back("+reserve-reg-g2");
   if (Args.hasFlag(options::OPT_ffixed_g3, options::OPT_fcall_used_g3, false))
