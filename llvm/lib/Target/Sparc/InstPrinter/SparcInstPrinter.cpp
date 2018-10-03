@@ -120,7 +120,9 @@ void SparcInstPrinter::printOperand(const MCInst *MI, int opNum,
       default:
         O << (int)MO.getImm();
         return;
-
+      case SP::SETHIi:
+        O << "%hi(" << format("0x%x", MO.getImm() << 10) << ")";
+        return;
       case SP::TICCri: // Fall through
       case SP::TICCrr: // Fall through
       case SP::TRAPri: // Fall through

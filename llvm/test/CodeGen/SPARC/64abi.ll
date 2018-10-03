@@ -465,11 +465,11 @@ entry:
 
 ; CHECK-LABEL: test_large_stack:
 
-; CHECK:       sethi 16, %g1
+; CHECK:       sethi %hi(0x4000), %g1
 ; CHECK:       xor %g1, -176, %g1
 ; CHECK:       save %sp, %g1, %sp
 
-; CHECK:       sethi 14, %g1
+; CHECK:       sethi %hi(0x3800), %g1
 ; CHECK:       xor %g1, -1, %g1
 ; CHECK:       add %g1, %fp, %g1
 ; CHECK:       call use_buf

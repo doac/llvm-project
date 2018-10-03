@@ -37,7 +37,7 @@ entry:
 }
 
 ; CHECK-LABEL: test_constraint_I_largeimm:
-; CHECK:       sethi 9, [[R0:%[gilo][0-7]]]
+; CHECK:       sethi %hi(0x2400), [[R0:%[gilo][0-7]]]
 ; CHECK:       or [[R0]], 784, [[R1:%[gilo][0-7]]]
 ; CHECK:       add %o0, [[R1]], %o0
 define i32 @test_constraint_I_largeimm(i32 %a) {

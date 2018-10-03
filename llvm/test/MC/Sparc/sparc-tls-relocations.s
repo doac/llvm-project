@@ -28,7 +28,7 @@ foo:
 ! Sequence for Local Executable model:
 !     LE_HIX22/LE_LOX10
 
-! OBJDUMP: {{[0-9,a-f]+}}:  31 00 00 00  sethi 0, %i0
+! OBJDUMP: {{[0-9,a-f]+}}:  31 00 00 00  sethi %hi(0x0), %i0
 ! OBJDUMP: {{[0-9,a-f]+}}:     R_SPARC_TLS_LE_HIX22 Local
 ! ASM: sethi %tle_hix22(Local), %i0 ! encoding: [0x31,0x00,0x00,0x00]
 ! ASM:                             !   fixup A - offset: 0, value: %tle_hix22(Local), kind: fixup_sparc_tls_le_hix22
@@ -45,13 +45,13 @@ foo:
 ! Local Dynamic model:
 !     LDO_HIX22/LDO_LOX10/LDO_ADD/LDM_HI22/LDM_LO10/LDM_ADD/LDM_CALL
 
-! OBJDUMP: {{[0-9,a-f]+}}:  33 00 00 00  sethi 0, %i1
+! OBJDUMP: {{[0-9,a-f]+}}:  33 00 00 00  sethi %hi(0x0), %i1
 ! OBJDUMP: {{[0-9,a-f]+}}:     R_SPARC_TLS_LDO_HIX22 Local
 ! ASM: sethi %tldo_hix22(Local), %i1 ! encoding: [0x33,0b00AAAAAA,A,A]
 ! ASM:                              !   fixup A - offset: 0, value: %tldo_hix22(Local), kind: fixup_sparc_tls_ldo_hix22
         sethi %tldo_hix22(Local), %i1
 
-! OBJDUMP: {{[0-9,a-f]+}}:  35 00 00 00  sethi 0, %i2
+! OBJDUMP: {{[0-9,a-f]+}}:  35 00 00 00  sethi %hi(0x0), %i2
 ! OBJDUMP: {{[0-9,a-f]+}}:     R_SPARC_TLS_LDM_HI22 Local
 ! ASM: sethi %tldm_hi22(Local), %i2 ! encoding: [0x35,0b00AAAAAA,A,A]
 ! ASM:                             !   fixup A - offset: 0, value: %tldm_hi22(Local), kind: fixup_sparc_tls_ldm_hi22
@@ -125,7 +125,7 @@ foo:
 ! General Dynamic model
 !     GD_HI22/GD_LO10/GD_ADD/GD_CALL
 
-! OBJDUMP: {{[0-9,a-f]+}}:  33 00 00 00  sethi 0, %i1
+! OBJDUMP: {{[0-9,a-f]+}}:  33 00 00 00  sethi %hi(0x0), %i1
 ! OBJDUMP: {{[0-9,a-f]+}}:     R_SPARC_TLS_GD_HI22 Extern
 ! ASM:  sethi %tgd_hi22(Extern), %i1    ! encoding: [0x33,0b00AAAAAA,A,A]
 ! ASM:                                    !   fixup A - offset: 0, value: %tgd_hi22(Extern), kind: fixup_sparc_tls_gd_hi22

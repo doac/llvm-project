@@ -113,7 +113,7 @@ entry:
 ; CHECK:       and %o1, 3, %o1
 ; CHECK:       xor %o1, 2, %o1
 ; CHECK:       sll %o1, 3, %o1
-; CHECK:       sethi 63, %o3
+; CHECK:       sethi %hi(0xfc00), %o3
 ; CHECK:       or %o3, 1023, %o4
 ; CHECK:       sll %o4, %o1, %o5
 ; CHECK:       xor %o5, -1, %o3

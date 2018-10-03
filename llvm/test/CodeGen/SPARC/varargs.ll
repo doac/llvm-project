@@ -66,7 +66,7 @@ declare void @llvm.va_start(i8*)
 
 ; CHECK: call_1d
 ; The fixed-arg double goes in %d2, the second goes in %o2.
-; CHECK: sethi 1048576
+; CHECK: sethi %hi(0x40000000)
 ; CHECK: , %f2
 ; CHECK: , %o2
 define i32 @call_1d() #0 {

@@ -153,7 +153,7 @@ entry:
 define i32 @restore_sethi(i32 %a) {
 entry:
 ;CHECK-LABEL: restore_sethi:
-;CHECK-NOT: sethi  3
+;CHECK-NOT: sethi %hi(0xc00)
 ;CHECK: restore %g0, 3072, %o0
   %0 = tail call i32 @bar(i32 %a) nounwind
   %1 = icmp ne i32 %0, 0
@@ -164,7 +164,7 @@ entry:
 define i32 @restore_sethi_3bit(i32 %a) {
 entry:
 ;CHECK-LABEL: restore_sethi_3bit:
-;CHECK: sethi  6
+;CHECK: sethi %hi(0x1800)
 ;CHECK-NOT: restore %g0, 6144, %o0
   %0 = tail call i32 @bar(i32 %a) nounwind
   %1 = icmp ne i32 %0, 0
@@ -175,7 +175,7 @@ entry:
 define i32 @restore_sethi_large(i32 %a) {
 entry:
 ;CHECK-LABEL: restore_sethi_large:
-;CHECK: sethi  4000, %i0
+;CHECK: sethi %hi(0x3e8000), %i0
 ;CHECK-NOT: restore %g0, %g0, %g0
 ;CHECK:     restore
   %0 = tail call i32 @bar(i32 %a) nounwind

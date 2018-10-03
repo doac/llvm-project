@@ -30,7 +30,7 @@ define i64 @test3(i64 %b) {
 ; CHECK-LABEL: test3:
 ; CHECK:         .cfi_startproc
 ; CHECK-NEXT:  ! %bb.0: ! %entry
-; CHECK-NEXT:    sethi 2545, %o1
+; CHECK-NEXT:    sethi %hi(0x27c400), %o1
 ; CHECK-NEXT:    or %o1, 379, %o1
 ; CHECK-NEXT:    mulx %o0, %o1, %o0
 ; CHECK-NEXT:    udivx %o0, 1021, %o1

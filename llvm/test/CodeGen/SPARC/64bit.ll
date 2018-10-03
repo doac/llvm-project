@@ -59,23 +59,23 @@ define i64 @ret_simm13() {
 }
 
 ; CHECK: ret_sethi
-; CHECK: sethi 4, %i0
+; CHECK: sethi %hi(0x1000), %i0
 ; CHECK-NOT: or
 ; CHECK: restore
 
 ; OPT:  ret_sethi
 ; OPT:  retl
-; OPT:  sethi 4, %o0
+; OPT:  sethi %hi(0x1000), %o0
 define i64 @ret_sethi() {
   ret i64 4096
 }
 
 ; CHECK: ret_sethi_or
-; CHECK: sethi 4, [[R:%[goli][0-7]]]
+; CHECK: sethi %hi(0x1000), [[R:%[goli][0-7]]]
 ; CHECK: or [[R]], 1, %i0
 
 ; OPT: ret_sethi_or
-; OPT: sethi 4, [[R:%[go][0-7]]]
+; OPT: sethi %hi(0x1000), [[R:%[go][0-7]]]
 ; OPT: retl
 ; OPT: or [[R]], 1, %o0
 
@@ -84,11 +84,11 @@ define i64 @ret_sethi_or() {
 }
 
 ; CHECK: ret_nimm33
-; CHECK: sethi 4, [[R:%[goli][0-7]]]
+; CHECK: sethi %hi(0x1000), [[R:%[goli][0-7]]]
 ; CHECK: xor [[R]], -4, %i0
 
 ; OPT: ret_nimm33
-; OPT: sethi 4, [[R:%[go][0-7]]]
+; OPT: sethi %hi(0x1000), [[R:%[go][0-7]]]
 ; OPT: retl
 ; OPT: xor [[R]], -4, %o0
 
@@ -104,7 +104,7 @@ define i64 @ret_bigimm() {
 }
 
 ; CHECK: ret_bigimm2
-; CHECK: sethi 1048576
+; CHECK: sethi %hi(0x40000000)
 define i64 @ret_bigimm2() {
   ret i64 4611686018427387904 ; 0x4000000000000000
 }

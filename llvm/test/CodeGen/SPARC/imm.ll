@@ -30,7 +30,7 @@ define i32 @neg_small() nounwind {
 define i32 @pos_i32() nounwind {
 ; SPARC-LABEL: pos_i32:
 ; SPARC:       ! %bb.0:
-; SPARC-NEXT:    sethi 1695242, %o0
+; SPARC-NEXT:    sethi %hi(0x67782800), %o0
 ; SPARC-NEXT:    retl
 ; SPARC-NEXT:    or %o0, 751, %o0
   ret i32 1735928559
@@ -39,7 +39,7 @@ define i32 @pos_i32() nounwind {
 define i32 @neg_i32() nounwind {
 ; SPARC-LABEL: neg_i32:
 ; SPARC:       ! %bb.0:
-; SPARC-NEXT:    sethi 3648367, %o0
+; SPARC-NEXT:    sethi %hi(0xdeadbc00), %o0
 ; SPARC-NEXT:    retl
 ; SPARC-NEXT:    or %o0, 751, %o0
   ret i32 -559038737

@@ -44,7 +44,7 @@
         ! CHECK: nop                  ! encoding: [0x01,0x00,0x00,0x00]
         nop
 
-        ! CHECK: sethi 10, %l0        ! encoding: [0x21,0x00,0x00,0x0a]
+        ! CHECK: sethi %hi(0x2800), %l0 ! encoding: [0x21,0x00,0x00,0x0a]
         sethi 10, %l0
 
         ! CHECK: sll %g1, %g2, %g3    ! encoding: [0x87,0x28,0x40,0x02]
