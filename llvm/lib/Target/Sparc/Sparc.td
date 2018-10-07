@@ -188,6 +188,9 @@ def : Processor<"gr740", LEON4Itineraries,
                 [FeatureLeon, UMACSMACSupport, LeonCASA, LeonCycleCounter,
                  FeaturePWRPSR]>;
 
+def : Processor<"gr716", GR716Itineraries,
+                [FeatureLeon, LeonCASA, LeonCycleCounter, FeaturePWRPSR]>;
+
 //===----------------------------------------------------------------------===//
 // Declare the target which we are implementing
 //===----------------------------------------------------------------------===//
