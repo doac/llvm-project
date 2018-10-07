@@ -168,6 +168,10 @@
 // RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \
 // RUN: | FileCheck -check-prefix=SPARC-LEON %s
 
+// RUN: %clang -mcpu=gr716 -no-canonical-prefixes -target sparc \
+// RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \
+// RUN: | FileCheck -check-prefix=SPARC-LEON %s
+
 // SPARC: as{{.*}}" "-32" "-Av8" "-o"
 // SPARC-V8: as{{.*}}" "-32" "-Av8" "-o"
 // SPARC-LEON: as{{.*}}" "-32" "-Aleon" "-o"

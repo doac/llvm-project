@@ -69,6 +69,7 @@ const char *sparc::getSparcAsmModeForCPU(StringRef Name,
         .Case("gr712rc", "-Aleon")
         .Case("leon4", "-Aleon")
         .Case("gr740", "-Aleon")
+        .Case("gr716", "-Aleon")
         .Default("-Av8");
   }
 }
