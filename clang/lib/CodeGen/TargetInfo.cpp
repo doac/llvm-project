@@ -7942,6 +7942,8 @@ private:
   ABIArgInfo classifyReturnType(QualType RetTy) const;
   ABIArgInfo classifyArgumentType(QualType Ty) const;
   void computeInfo(CGFunctionInfo &FI) const override;
+  Address EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
+                    QualType Ty) const override;
 };
 } // end anonymous namespace
 
@@ -7975,6 +7977,13 @@ ABIArgInfo SparcV8ABIInfo::classifyArgumentType(QualType Ty) const {
     return ABIArgInfo::getDirect(llvm::IntegerType::get(getVMContext(), Size));
 
   return DefaultABIInfo::classifyArgumentType(Ty);
+}
+
+Address SparcV8ABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
+                                  QualType Ty) const {
+  return emitVoidPtrVAArg(
+      CGF, VAListAddr, Ty, classifyArgumentType(Ty).isIndirect(),
+      getContext().getTypeInfoInChars(Ty), CharUnits::fromQuantity(4), false);
 }
 
 void SparcV8ABIInfo::computeInfo(CGFunctionInfo &FI) const {
