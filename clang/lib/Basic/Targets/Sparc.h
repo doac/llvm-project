@@ -177,7 +177,7 @@ public:
   void getTargetDefines(const LangOptions &Opts,
                         MacroBuilder &Builder) const override;
 
-  bool hasSjLjLowering() const override { return true; }
+  bool hasSjLjLowering() const override { return false; }
 };
 
 // SPARCV8el is the 32-bit little-endian mode selected by Triple::sparcel.
