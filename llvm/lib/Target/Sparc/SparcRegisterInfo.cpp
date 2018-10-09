@@ -48,6 +48,10 @@ SparcRegisterInfo::getRTCallPreservedMask(CallingConv::ID CC) const {
   return RTCSR_RegMask;
 }
 
+bool SparcRegisterInfo::isConstantPhysReg(unsigned PhysReg) const {
+  return PhysReg == SP::G0;
+}
+
 BitVector SparcRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();

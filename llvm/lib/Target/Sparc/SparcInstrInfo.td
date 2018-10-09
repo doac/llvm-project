@@ -500,6 +500,7 @@ let DecoderMethod = "DecodeLoadInt" in {
   defm LDSH : LoadA<"ldsh", 0b001010, 0b011010, sextloadi16, IntRegs, i32>;
   defm LDUB : LoadA<"ldub", 0b000001, 0b010001, zextloadi8,  IntRegs, i32>;
   defm LDUH : LoadA<"lduh", 0b000010, 0b010010, zextloadi16, IntRegs, i32>;
+  let isReMaterializable = 1 in
   defm LD   : LoadA<"ld",   0b000000, 0b010000, load,        IntRegs, i32>;
 }
 
@@ -639,6 +640,7 @@ let Constraints = "$val = $dst", DecoderMethod = "DecodeSWAP" in {
 
 
 // Section B.9 - SETHI Instruction, p. 104
+let isReMaterializable = 1 in
 def SETHIi: F2_1<0b100,
                  (outs IntRegs:$rd), (ins i32imm:$imm22),
                  "sethi $imm22, $rd",
@@ -661,6 +663,7 @@ def ANDNri  : F3_2<2, 0b000101,
                    (outs IntRegs:$rd), (ins IntRegs:$rs1, simm13Op:$simm13),
                    "andn $rs1, $simm13, $rd", []>;
 
+let isReMaterializable = 1 in
 defm OR     : F3_12<"or", 0b000010, or, IntRegs, i32, simm13Op>;
 
 def ORNrr   : F3_1<2, 0b000110,
@@ -701,10 +704,11 @@ defm SRL : F3_12<"srl", 0b100110, srl, IntRegs, i32, simm13Op>;
 defm SRA : F3_12<"sra", 0b100111, sra, IntRegs, i32, simm13Op>;
 
 // Section B.13 - Add Instructions, p. 108
+let isReMaterializable = 1 in
 defm ADD   : F3_12<"add", 0b000000, add, IntRegs, i32, simm13Op>;
 
 // "LEA" forms of add (patterns to make tblgen happy)
-let Predicates = [Is32Bit], isCodeGenOnly = 1 in
+let Predicates = [Is32Bit], isCodeGenOnly = 1, isReMaterializable = 1 in
   def LEA_ADDri   : F3_2<2, 0b000000,
                      (outs IntRegs:$dst), (ins MEMri:$addr),
                      "add ${addr:arith}, $dst",
@@ -1646,7 +1650,7 @@ let Predicates = [HasV9] in {
 
 // Zero immediate.
 def : Pat<(i32 0),
-          (ORrr (i32 G0), (i32 G0))>;
+          (ORri (i32 G0), (i32 0))>;
 // Small immediates.
 def : Pat<(i32 simm13:$val),
           (ORri (i32 G0), imm:$val)>;
