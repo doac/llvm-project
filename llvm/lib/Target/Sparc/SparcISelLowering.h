@@ -133,6 +133,21 @@ namespace llvm {
     /// the predicate, for example: (X & 8) == 8 ---> (X & 8) != 0
     bool hasAndNotCompare(SDValue Y) const override { return true; }
 
+    /// Return true if the specified immediate is legal icmp immediate, that is
+    /// the target has icmp instructions which can compare a register against
+    /// the immediate without having to materialize the immediate into a
+    /// register.
+    bool isLegalICmpImmediate(int64_t val) const override {
+      return isInt<13>(val);
+    }
+
+    /// Return true if the specified immediate is legal add immediate, that is
+    /// the target has add instructions which can add a register with the
+    /// immediate without having to materialize the immediate into a register.
+    bool isLegalAddImmediate(int64_t val) const override {
+      return isInt<13>(val);
+    }
+
     /// Override to support customized stack guard loading.
     bool useLoadStackGuardNode() const override;
     void insertSSPDeclarations(Module &M) const override;
