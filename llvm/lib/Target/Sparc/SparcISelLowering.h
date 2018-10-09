@@ -172,6 +172,14 @@ namespace llvm {
       return isInt<13>(val);
     }
 
+    /// Return true if it is beneficial to convert a load of a constant to
+    /// just the constant itself.
+    /// On some targets it might be more efficient to use a combination of
+    /// arithmetic instructions to materialize the constant instead of loading
+    /// it from a constant pool.
+    bool shouldConvertConstantLoadToIntImm(const APInt &Imm,
+                                           Type *Ty) const override;
+
     /// Override to support customized stack guard loading.
     bool useLoadStackGuardNode() const override;
     void insertSSPDeclarations(Module &M) const override;

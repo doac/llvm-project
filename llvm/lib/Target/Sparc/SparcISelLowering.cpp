@@ -3508,6 +3508,14 @@ void SparcTargetLowering::ReplaceNodeResults(SDNode *N,
   }
 }
 
+bool SparcTargetLowering::shouldConvertConstantLoadToIntImm(const APInt &Imm,
+                                                            Type *Ty) const {
+  assert(Ty->isIntegerTy());
+
+  unsigned Bits = Ty->getPrimitiveSizeInBits();
+  return (Bits != 0 && Bits <= 32);
+}
+
 // Override to enable LOAD_STACK_GUARD lowering on Linux.
 bool SparcTargetLowering::useLoadStackGuardNode() const {
   if (!Subtarget->isTargetLinux())
