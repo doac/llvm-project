@@ -135,6 +135,15 @@ namespace llvm {
       return true;
     }
 
+    /// Use bitwise logic to make pairs of compares more efficient. For example:
+    /// and (seteq A, B), (seteq C, D) --> seteq (or (xor A, B), (xor C, D)), 0
+    /// This should be true when it takes more than one instruction to lower
+    /// setcc (cmp+set on x86 scalar), when bitwise ops are faster than logic on
+    /// condition bits (crand on PowerPC), and/or when reducing cmp+br is a win.
+    bool convertSetCCLogicToBitwiseLogic(EVT VT) const override {
+      return true;
+    }
+
     /// Return true if the target should transform:
     /// (X & Y) == Y ---> (~X & Y) == 0
     /// (X & Y) != Y ---> (~X & Y) != 0
