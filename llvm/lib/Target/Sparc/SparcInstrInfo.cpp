@@ -611,6 +611,57 @@ bool SparcInstrInfo::optimizeCompareInstr(
   return true;
 }
 
+static bool isLoadRIInstruction(unsigned Opcode)
+{
+  switch (Opcode) {
+  default:
+    return false;
+  case SP::LDSBri:
+  case SP::LDSHri:
+  case SP::LDUBri:
+  case SP::LDUHri:
+  case SP::LDri:
+  case SP::LDDri:
+  case SP::LDFri:
+  case SP::LDDFri:
+    return true;
+  }
+}
+
+bool SparcInstrInfo::areLoadsFromSameBasePtr(SDNode *Load1, SDNode *Load2,
+                                             int64_t &Offset1,
+                                             int64_t &Offset2) const {
+  if (!Load1->isMachineOpcode() || !Load2->isMachineOpcode())
+    return false;
+
+  if (!isLoadRIInstruction(Load1->getMachineOpcode()) ||
+      !isLoadRIInstruction(Load2->getMachineOpcode()))
+    return false;
+
+  // Check if base addresses and chain operands match.
+  if (Load1->getOperand(0) != Load2->getOperand(0) ||
+      Load1->getOperand(2) != Load2->getOperand(2))
+    return false;
+
+  // Determine the offsets.
+  if (isa<ConstantSDNode>(Load1->getOperand(1)) &&
+      isa<ConstantSDNode>(Load2->getOperand(1))) {
+    Offset1 = cast<ConstantSDNode>(Load1->getOperand(1))->getSExtValue();
+    Offset2 = cast<ConstantSDNode>(Load2->getOperand(1))->getSExtValue();
+    return true;
+  }
+
+  return false;
+}
+
+bool SparcInstrInfo::shouldScheduleLoadsNear(SDNode *Load1, SDNode *Load2,
+                                             int64_t Offset1, int64_t Offset2,
+                                             unsigned NumLoads) const {
+  if (Offset2 - Offset1 > 32)
+    return false;
+  return true;
+}
+
 bool SparcInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   switch (MI.getOpcode()) {
   case TargetOpcode::LOAD_STACK_GUARD: {

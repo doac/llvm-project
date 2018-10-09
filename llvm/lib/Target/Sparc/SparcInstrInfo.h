@@ -98,6 +98,18 @@ public:
                             const TargetRegisterInfo *TRI) const override;
 
   unsigned getGlobalBaseReg(MachineFunction *MF) const;
+    
+  /// This is used by the pre-regalloc scheduler to determine if two loads are
+  /// loading from the same base address. It should only return true if the base
+  /// pointers are the same and the only differences between the two addresses
+  /// are the offset. It also returns the offsets by reference.
+  bool areLoadsFromSameBasePtr(SDNode *Load1, SDNode *Load2, int64_t &Offset1,
+                               int64_t &Offset2) const override;
+
+  bool shouldScheduleLoadsNear(SDNode *Load1, SDNode *Load2,
+                               int64_t Offset1, int64_t Offset2,
+                               unsigned NumLoads) const override;
+
 
   bool isSchedulingBoundary(const MachineInstr &MI,
                             const MachineBasicBlock *MBB,
