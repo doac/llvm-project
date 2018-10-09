@@ -120,6 +120,21 @@ namespace llvm {
 
     SDValue getThreadPointerRegister(SelectionDAG &DAG) const;
 
+    /// Return if the target supports combining a
+    /// chain like:
+    /// \code
+    ///   %andResult = and %val1, #mask
+    ///   %icmpResult = icmp %andResult, 0
+    /// \endcode
+    /// into a single machine instruction of a form like:
+    /// \code
+    ///   cc = test %register, #mask
+    /// \endcode
+    bool
+    isMaskAndCmp0FoldingBeneficial(const Instruction &AndI) const override {
+      return true;
+    }
+
     /// Return true if the target should transform:
     /// (X & Y) == Y ---> (~X & Y) == 0
     /// (X & Y) != Y ---> (~X & Y) != 0
