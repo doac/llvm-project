@@ -36,6 +36,26 @@ using namespace llvm;
 
 #define DEBUG_TYPE "sparctti"
 
+int SparcTTIImpl::getIntImmCodeSizeCost(unsigned Opcode, unsigned Idx,
+                                        const APInt &Imm, Type *Ty) {
+  return getIntImmCost(Imm, Ty);
+}
+
+int SparcTTIImpl::getIntImmCost(const APInt &Imm, Type *Ty) {
+  unsigned Bits = Ty->getPrimitiveSizeInBits();
+  if (Bits == 0 || Imm.getActiveBits() > 32)
+    return  2 * TTI::TCC_Basic;
+    
+  if (isInt<13>(Imm.getSExtValue()))
+    return TTI::TCC_Free;
+  return TTI::TCC_Basic;
+}
+
+int SparcTTIImpl::getIntImmCost(unsigned Opcode, unsigned Idx, const APInt &Imm,
+                                Type *Ty) {
+  return getIntImmCost(Imm, Ty);
+}
+
 bool SparcTTIImpl::isLSRCostLess(TargetTransformInfo::LSRCost &C1,
                                  TargetTransformInfo::LSRCost &C2) {
   return std::tie(C1.Insns, C1.NumRegs, C1.AddRecCost, C1.NumIVMuls,
