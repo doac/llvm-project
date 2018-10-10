@@ -56,6 +56,19 @@ struct SparcRegisterInfo : public SparcGenRegisterInfo {
   bool requiresFrameIndexScavenging(const MachineFunction &MF) const override {
     return true;
   }
+
+  bool requiresVirtualBaseRegisters(const MachineFunction &MF) const override;
+
+  bool isFrameOffsetLegal(const MachineInstr *MI, unsigned BaseReg,
+                          int64_t Offset) const override;
+
+  void materializeFrameBaseRegister(MachineBasicBlock *MBB, unsigned BaseReg,
+                                    int FrameIdx,
+                                    int64_t Offset) const override;
+  bool needsFrameBaseReg(MachineInstr *MI, int64_t Offset) const override;
+
+  void resolveFrameIndex(MachineInstr &MI, unsigned BaseReg,
+                         int64_t Offset) const override;
 };
 
 } // end namespace llvm

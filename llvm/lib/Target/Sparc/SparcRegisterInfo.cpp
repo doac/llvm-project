@@ -98,6 +98,65 @@ BitVector SparcRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   return Reserved;
 }
 
+bool SparcRegisterInfo::requiresVirtualBaseRegisters(
+    const MachineFunction &MF) const {
+  return true;
+}
+
+bool SparcRegisterInfo::isFrameOffsetLegal(const MachineInstr *MI,
+                                           unsigned BaseReg,
+                                           int64_t Offset) const {
+  return (Offset >= -4096 && Offset <= 4095);
+}
+
+void SparcRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
+                                                     unsigned BaseReg,
+                                                     int FrameIdx,
+                                                     int64_t Offset) const {
+
+  MachineBasicBlock::iterator Ins = MBB->begin();
+  DebugLoc DL; // Defaults to "unknown"
+  if (Ins != MBB->end())
+    DL = Ins->getDebugLoc();
+
+  const MachineFunction &MF = *MBB->getParent();
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
+  const MCInstrDesc &MCID = TII.get(SP::ADDri);
+  MachineRegisterInfo &MRI = MBB->getParent()->getRegInfo();
+  MRI.constrainRegClass(BaseReg, TII.getRegClass(MCID, 0, this, MF));
+
+  BuildMI(*MBB, Ins, DL, MCID, BaseReg).addFrameIndex(FrameIdx).addImm(Offset);
+}
+bool SparcRegisterInfo::needsFrameBaseReg(MachineInstr *MI,
+                                          int64_t Offset) const {
+  return !(Offset >= -4096 && Offset <= 4095);
+}
+
+void SparcRegisterInfo::resolveFrameIndex(MachineInstr &MI, unsigned BaseReg,
+                                          int64_t Offset) const {
+  unsigned FIOperandNum = 0;
+  while (!MI.getOperand(FIOperandNum).isFI()) {
+    ++FIOperandNum;
+    assert(FIOperandNum < MI.getNumOperands() &&
+           "Instr doesn't have FrameIndex operand!");
+  }
+
+  MI.getOperand(FIOperandNum).ChangeToRegister(BaseReg, false);
+  unsigned OffsetOperandNo = FIOperandNum + 1;
+  // getOffsetONFromFION(MI, FIOperandNum);
+  Offset += MI.getOperand(OffsetOperandNo).getImm();
+  MI.getOperand(OffsetOperandNo).ChangeToImmediate(Offset);
+
+  MachineBasicBlock &MBB = *MI.getParent();
+  MachineFunction &MF = *MBB.getParent();
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
+  const MCInstrDesc &MCID = MI.getDesc();
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+  MRI.constrainRegClass(BaseReg, TII.getRegClass(MCID, FIOperandNum, this, MF));
+}
+
 const TargetRegisterClass*
 SparcRegisterInfo::getPointerRegClass(const MachineFunction &MF,
                                       unsigned Kind) const {
