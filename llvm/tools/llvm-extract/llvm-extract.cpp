@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
 
   // Use lazy loading, since we only care about selected global values.
   SMDiagnostic Err;
-  std::unique_ptr<Module> M = getLazyIRFileModule(InputFilename, Err, Context);
+  std::unique_ptr<Module> M = parseIRFile(InputFilename, Err, Context);
 
   if (!M.get()) {
     Err.print(argv[0], errs());
