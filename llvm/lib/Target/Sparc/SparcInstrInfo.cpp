@@ -492,6 +492,20 @@ unsigned SparcInstrInfo::getGlobalBaseReg(MachineFunction *MF) const
   return GlobalBaseReg;
 }
 
+bool SparcInstrInfo::isSchedulingBoundary(const MachineInstr &MI,
+                                          const MachineBasicBlock *MBB,
+                                          const MachineFunction &MF) const {
+
+  if (MI.getOpcode() == SP::RESTORErr || MI.getOpcode() == SP::RESTOREri)
+    return true;
+
+  const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
+  if (MI.modifiesRegister(SP::O7, TRI))
+    return true;
+
+  return TargetInstrInfo::isSchedulingBoundary(MI, MBB, MF);
+}
+
 bool SparcInstrInfo::analyzeCompare(const MachineInstr &MI, unsigned &SrcReg,
                                     unsigned &SrcReg2, int &CmpMask,
                                     int &CmpValue) const {

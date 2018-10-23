@@ -89,6 +89,14 @@ public:
 
   bool enableMachineScheduler() const override;
 
+  bool enablePostRAScheduler() const override {
+    return true;
+  }
+
+  AntiDepBreakMode getAntiDepBreakMode() const override {
+    return TargetSubtargetInfo::ANTIDEP_ALL;
+  }
+
   bool useSoftMulDiv() const { return UseSoftMulDiv; }
   bool isV9() const { return IsV9; }
   bool isLeon() const { return IsLeon; }

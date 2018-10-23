@@ -99,6 +99,10 @@ public:
 
   unsigned getGlobalBaseReg(MachineFunction *MF) const;
 
+  bool isSchedulingBoundary(const MachineInstr &MI,
+                            const MachineBasicBlock *MBB,
+                            const MachineFunction &MF) const override;
+
   bool analyzeCompare(const MachineInstr &MI, unsigned &SrcReg,
                       unsigned &SrcReg2, int &CmpMask,
                       int &CmpValue) const override;

@@ -81,6 +81,7 @@ BitVector SparcRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   markSuperRegs(Reserved, SP::I6);
   markSuperRegs(Reserved, SP::I7);
   markSuperRegs(Reserved, SP::G0);
+  markSuperRegs(Reserved, SP::O7);
 
   // Unaliased double registers are not available in non-V9 targets.
   if (!Subtarget.isV9()) {
