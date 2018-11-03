@@ -182,11 +182,6 @@ void SparcInstPrinter::printCCOperand(const MCInst *MI, int opNum,
     // Make sure CC is a fp conditional flag.
     CC = (CC < 16) ? (CC + 16) : CC;
     break;
-  case SP::CBCOND:
-  case SP::CBCONDA:
-    // Make sure CC is a cp conditional flag.
-    CC = (CC < 32) ? (CC + 32) : CC;
-    break;
   }
   O << SPARCCondCodeToString((SPCC::CondCodes)CC);
 }

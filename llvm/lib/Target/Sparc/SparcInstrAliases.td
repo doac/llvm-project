@@ -253,19 +253,6 @@ multiclass fp_cond_alias<string cond, int condVal> {
                   Requires<[HasV9, HasHardQuad]>;
 }
 
-
-// Instruction aliases for co-processor conditional branches.
-multiclass cp_cond_alias<string cond, int condVal> {
-
-  // cb<cond> $imm
-  def : InstAlias<!strconcat(!strconcat("cb", cond), " $imm"),
-                  (CBCOND brtarget:$imm, condVal), 0>;
-
-  // cb<cond>,a $imm
-  def : InstAlias<!strconcat(!strconcat("cb", cond), ",a $imm"),
-                  (CBCONDA brtarget:$imm, condVal), 0>;
-}
-
 defm : int_cond_alias<"a",    0b1000>;
 defm : int_cond_alias<"n",    0b0000>;
 defm : int_cond_alias<"ne",   0b1001>;
@@ -313,24 +300,6 @@ let EmitPriority = 0 in
   defm : fp_cond_alias<"nz",    0b0001>; // same as ne
   defm : fp_cond_alias<"z",     0b1001>; // same as e
 }
-
-defm : cp_cond_alias<"a",     0b1000>;
-defm : cp_cond_alias<"n",     0b0000>;
-defm : cp_cond_alias<"3",     0b0111>;
-defm : cp_cond_alias<"2",     0b0110>;
-defm : cp_cond_alias<"23",    0b0101>;
-defm : cp_cond_alias<"1",     0b0100>;
-defm : cp_cond_alias<"13",    0b0011>;
-defm : cp_cond_alias<"12",    0b0010>;
-defm : cp_cond_alias<"123",   0b0001>;
-defm : cp_cond_alias<"0",     0b1001>;
-defm : cp_cond_alias<"03",    0b1010>;
-defm : cp_cond_alias<"02",    0b1011>;
-defm : cp_cond_alias<"023",   0b1100>;
-defm : cp_cond_alias<"01",    0b1101>;
-defm : cp_cond_alias<"013",   0b1110>;
-defm : cp_cond_alias<"012",   0b1111>;
-let EmitPriority = 0 in defm : cp_cond_alias<"",      0b1000>; // same as a; gnu asm, not in manual
 
 // Section A.3 Synthetic Instructions
 
