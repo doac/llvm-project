@@ -188,6 +188,7 @@ public:
     HermitCore, // HermitCore Unikernel/Multikernel
     Hurd,       // GNU/Hurd
     WASI,       // Experimental WebAssembly OS
+    VxWorks,
     LastOSType = WASI
   };
   enum EnvironmentType {

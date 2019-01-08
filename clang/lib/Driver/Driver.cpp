@@ -4651,9 +4651,18 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
         if (Target.getVendor() == llvm::Triple::Myriad)
           TC = llvm::make_unique<toolchains::MyriadToolChain>(*this, Target,
                                                               Args);
-        else if (Target.getVendor() == llvm::Triple::Gaisler)
-          TC = llvm::make_unique<toolchains::GaislerToolChain>(*this, Target,
-                                                               Args);
+        else if (Target.getVendor() == llvm::Triple::Gaisler) {
+          if (Target.getOS() == llvm::Triple::VxWorks)
+            TC = llvm::make_unique<toolchains::GaislerVxWorksToolChain>(*this,
+                                                                        Target,
+                                                                        Args);
+          else if (Target.getOS() == llvm::Triple::RTEMS)
+            TC = llvm::make_unique<toolchains::GaislerToolChain>(*this, Target,
+                                                                 Args);
+          else if (Target.getObjectFormat() == llvm::Triple::ELF)
+            TC = llvm::make_unique<toolchains::GaislerToolChain>(*this, Target,
+                                                                 Args);
+        }
         else if (toolchains::BareMetal::handlesTarget(Target))
           TC = llvm::make_unique<toolchains::BareMetal>(*this, Target, Args);
         else if (Target.isOSBinFormatELF())

@@ -351,6 +351,16 @@ void GaislerToolChain::AddCXXStdlibLibArgs(const ArgList &Args,
   }
 }
 
+GaislerVxWorksToolChain::GaislerVxWorksToolChain(const Driver &D, const llvm::Triple &Triple,
+                                 const ArgList &Args)
+  : Generic_ELF(D, Triple, Args) {
+
+}
+
+Tool *GaislerVxWorksToolChain::buildLinker() const {
+  return new tools::gaisler::VxWorksLinker(*this);
+}
+
 void tools::gaisler::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfo &Output,
                                const InputInfoList &Inputs, const ArgList &Args,
@@ -504,3 +514,62 @@ void tools::gaisler::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
 }
 
+void tools::gaisler::VxWorksLinker::ConstructJob(Compilation &C, const JobAction &JA,
+                               const InputInfo &Output,
+                               const InputInfoList &Inputs, const ArgList &Args,
+                               const char *LinkingOutput) const {
+
+  const toolchains::GaislerToolChain &TC = static_cast<const toolchains::GaislerToolChain &>(getToolChain());
+  const Driver &D = TC.getDriver();
+
+  ArgStringList CmdArgs;
+  // Silence warning for "clang -g foo.o -o foo"
+  Args.ClaimAllArgs(options::OPT_g_Group);
+  // and "clang -emit-llvm foo.o -o foo"
+  Args.ClaimAllArgs(options::OPT_emit_llvm);
+  // and for "clang -w foo.o -o foo". Other warning options are already
+  // handled somewhere else.
+  Args.ClaimAllArgs(options::OPT_w);
+
+  if (Args.hasArg(options::OPT_rdynamic))
+    CmdArgs.push_back("-export-dynamic");
+
+  if (Args.hasArg(options::OPT_s))
+    CmdArgs.push_back("-s");
+
+  CmdArgs.push_back("--eh-frame-hdr");
+
+  CmdArgs.push_back("-m");
+  CmdArgs.push_back("elf32_sparc_vxworks");
+
+  if (Args.hasArg(options::OPT_static))
+    CmdArgs.push_back("-static");
+  else if (Args.hasArg(options::OPT_shared)) {
+    CmdArgs.push_back("-shared");
+  }
+
+  CmdArgs.push_back("-o");
+  CmdArgs.push_back(Output.getFilename());
+
+  Args.AddAllArgs(CmdArgs, options::OPT_L);
+  Args.AddAllArgs(CmdArgs, options::OPT_u);
+
+  TC.AddFilePathLibArgs(Args, CmdArgs);
+
+  if (D.isUsingLTO()) {
+    assert(!Inputs.empty() && "Must have at least one input.");
+    AddGoldPlugin(TC, Args, CmdArgs, Output, Inputs[0],
+                  D.getLTOMode() == LTOK_Thin);
+  }
+
+  if (Args.hasArg(options::OPT_Z_Xlinker__no_demangle))
+    CmdArgs.push_back("--no-demangle");
+
+  AddLinkerInputs(TC, Inputs, Args, CmdArgs, JA);
+
+  // Silence warnings when linking C code with a C++ '-stdlib' argument.
+  Args.ClaimAllArgs(options::OPT_stdlib_EQ);
+
+  const char *Exec = Args.MakeArgString(TC.GetProgramPath("ldsparc"));
+  C.addCommand(llvm::make_unique<Command>(JA, *this, Exec, CmdArgs, Inputs));
+}

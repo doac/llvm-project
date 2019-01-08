@@ -569,6 +569,20 @@ public:
   }
 };
 
+// VxWorks Target
+template <typename Target>
+class LLVM_LIBRARY_VISIBILITY VxWorksTargetInfo : public OSTargetInfo<Target> {
+protected:
+  void getOSDefines(const LangOptions &Opts, const llvm::Triple &Triple,
+                    MacroBuilder &Builder) const override {
+    Builder.defineMacro("__ELF__");
+  }
+
+public:
+  VxWorksTargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
+      : OSTargetInfo<Target>(Triple, Opts) {}
+};
+
 // Solaris target
 template <typename Target>
 class LLVM_LIBRARY_VISIBILITY SolarisTargetInfo : public OSTargetInfo<Target> {

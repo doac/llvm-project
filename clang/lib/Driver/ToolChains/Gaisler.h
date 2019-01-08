@@ -29,6 +29,18 @@ public:
                     const llvm::opt::ArgList &TCArgs,
                     const char *LinkingOutput) const override;
 };
+
+class LLVM_LIBRARY_VISIBILITY VxWorksLinker : public GnuTool {
+public:
+  VxWorksLinker(const ToolChain &TC) : GnuTool("gaisler::Linker", "ldsparc", TC) {}
+  bool isLinkJob() const override { return true; }
+  bool hasIntegratedCPP() const override { return false; }
+  void ConstructJob(Compilation &C, const JobAction &JA,
+                    const InputInfo &Output, const InputInfoList &Inputs,
+                    const llvm::opt::ArgList &TCArgs,
+                    const char *LinkingOutput) const override;
+};
+
 } // end namespace gaisler
 } // end namespace tools
 
@@ -57,6 +69,17 @@ private:
   Multilib SelectedMultilib;
   std::string bsp;
 };
+
+class LLVM_LIBRARY_VISIBILITY GaislerVxWorksToolChain : public Generic_ELF {
+protected:
+  Tool *buildLinker() const override;
+
+public:
+  GaislerVxWorksToolChain(const Driver &D, const llvm::Triple &Triple,
+              const llvm::opt::ArgList &Args);
+  bool IsIntegratedAssemblerDefault() const override { return true; }
+};
+
 
 } // end namespace toolchains
 } // end namespace driver

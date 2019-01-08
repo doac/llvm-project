@@ -58,7 +58,7 @@ void DefineStd(MacroBuilder &Builder, StringRef MacroName,
 
   // If in GNU mode (e.g. -std=gnu99 but not -std=c99) define the raw identifier
   // in the user's namespace.
-  if (Opts.GNUMode)
+  if (Opts.GNUMode && !MacroName.equals("sparc"))
     Builder.defineMacro(MacroName);
 
   // Define __unix.
@@ -395,6 +395,8 @@ TargetInfo *AllocateTarget(const llvm::Triple &Triple,
       return new OpenBSDTargetInfo<SparcV8TargetInfo>(Triple, Opts);
     case llvm::Triple::RTEMS:
       return new RTEMSTargetInfo<SparcV8TargetInfo>(Triple, Opts);
+    case llvm::Triple::VxWorks:
+      return new VxWorksTargetInfo<SparcV8TargetInfo>(Triple, Opts);
     default:
       return new SparcV8TargetInfo(Triple, Opts);
     }
