@@ -114,6 +114,8 @@ void sparc::getSparcTargetFeatures(const Driver &D, const ArgList &Args,
     Features.push_back("+soft-float");
   if (Args.hasFlag(options::OPT_mflat, options::OPT_mno_flat, false))
     Features.push_back("+flat");
+  if (Args.hasFlag(options::OPT_mrex, options::OPT_mno_rex, false))
+    Features.push_back("+rex");
 
   if (Args.hasArg(options::OPT_mfix_gr712rc)) {
     Features.push_back("+fix-tn0009");

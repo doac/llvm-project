@@ -123,6 +123,7 @@ public:
     CK_LEON4,
     CK_LEON4_GR740,
     CK_LEON4_GR716,
+    CK_REX,
   } CPU = CK_GENERIC;
 
   enum CPUGeneration {

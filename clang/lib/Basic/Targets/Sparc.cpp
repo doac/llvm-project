@@ -108,6 +108,7 @@ static constexpr SparcCPUInfo CPUInfo[] = {
     {{"leon4"}, SparcTargetInfo::CK_LEON4, SparcTargetInfo::CG_V8},
     {{"gr740"}, SparcTargetInfo::CK_LEON4_GR740, SparcTargetInfo::CG_V8},
     {{"gr716"}, SparcTargetInfo::CK_LEON4_GR716, SparcTargetInfo::CG_V8},
+    {{"rex"}, SparcTargetInfo::CK_REX, SparcTargetInfo::CG_V8},
 };
 
 SparcTargetInfo::CPUGeneration

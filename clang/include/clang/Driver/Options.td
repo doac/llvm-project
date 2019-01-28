@@ -2110,6 +2110,11 @@ def mflat : Flag<["-"], "mflat">, Group<m_sparc_Features_Group>,
 def mno_flat : Flag<["-"], "mno-flat">, Group<m_sparc_Features_Group>,
   HelpText<"Disable flat register mode">;
 
+def mrex : Flag<["-"], "mrex">, Group<m_sparc_Features_Group>,
+  HelpText<"Enable REX ISA">;
+def mno_rex : Flag<["-"], "mno-rex">, Group<m_sparc_Features_Group>,
+  HelpText<"Disable REX ISA">;
+
 def mfix_gr712rc : Flag<["-"], "mfix-gr712rc">, Group<m_sparc_Features_Group>,
   HelpText<"Enable workarounds for GR712RC errata">;
 def mfix_ut700 : Flag<["-"], "mfix-ut700">, Group<m_sparc_Features_Group>,
