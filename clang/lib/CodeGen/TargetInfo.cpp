@@ -7998,6 +7998,18 @@ class SparcV8TargetCodeGenInfo : public TargetCodeGenInfo {
 public:
   SparcV8TargetCodeGenInfo(CodeGenTypes &CGT)
     : TargetCodeGenInfo(new SparcV8ABIInfo(CGT)) {}
+
+  /// Performs the code-generation required to convert a return
+  /// address as stored by the system into the actual address of the
+  /// next instruction that will be executed.
+  ///
+  /// Used by __builtin_extract_return_addr().
+  llvm::Value *decodeReturnAddress(CodeGen::CodeGenFunction &CGF,
+                                   llvm::Value *Address) const override {
+    // Skip call instruction and delay slot
+    return CGF.Builder.CreateConstInBoundsByteGEP(Address,
+                                                  CharUnits::fromQuantity(8));
+  }
 };
 } // end anonymous namespace
 
