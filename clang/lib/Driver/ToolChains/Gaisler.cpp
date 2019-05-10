@@ -327,6 +327,12 @@ void GaislerToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
 
 void GaislerToolChain::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
                                                ArgStringList &CC1Args) const {
+
+  if (DriverArgs.hasArg(options::OPT_nostdlibinc) ||
+      DriverArgs.hasArg(options::OPT_nostdincxx)) {
+    return;
+  }
+
   // prefix might end up with sparc-gaisler--elf- for BCC. We do not want the
   // double dashes, so define it manually for BCC.
   std::string prefix = getTriple().str();
