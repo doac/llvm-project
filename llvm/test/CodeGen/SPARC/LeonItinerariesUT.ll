@@ -1,5 +1,5 @@
 ; RUN: llc < %s -O1 -march=sparc | FileCheck %s -check-prefix=NO_ITIN
-; RUN: llc < %s -O1 -march=sparc -mcpu=leon2   | FileCheck %s -check-prefix=LEON2_ITIN
+; RUN: llc < %s -O1 -march=sparc -mcpu=leon   | FileCheck %s -check-prefix=LEON2_ITIN
 ; RUN: llc < %s -O1 -march=sparc -mcpu=leon3   | FileCheck %s -check-prefix=LEON3_4_ITIN
 ; RUN: llc < %s -O1 -march=sparc -mcpu=leon4   | FileCheck %s -check-prefix=LEON3_4_ITIN
 

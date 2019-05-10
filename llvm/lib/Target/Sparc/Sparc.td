@@ -150,43 +150,29 @@ def : Proc<"niagara3",        [FeatureV9, FeatureV8Deprecated, UsePopc,
 def : Proc<"niagara4",        [FeatureV9, FeatureV8Deprecated, UsePopc,
                                FeatureVIS, FeatureVIS2, FeatureVIS3]>;
 
-// LEON 2 FT generic
-def : Processor<"leon2", LEON2Itineraries,
+// LEON 2 generic
+def : Processor<"leon", LEON2Itineraries,
                 [FeatureLeon]>;
 
-// LEON 2 FT (AT697E)
-// TO DO: Place-holder: Processor specific features will be added *very* soon here.
-def : Processor<"at697e", LEON2Itineraries,
-                [FeatureLeon, InsertNOPLoad]>;
-
-// LEON 2 FT (AT697F)
-// TO DO: Place-holder: Processor specific features will be added *very* soon here.
-def : Processor<"at697f", LEON2Itineraries,
-                [FeatureLeon, InsertNOPLoad]>;
-
-
-// LEON 3 FT generic
+// LEON 3 generic
 def : Processor<"leon3", LEON3Itineraries,
-                [FeatureLeon, UMACSMACSupport]>;
+                [FeatureLeon, LeonCASA]>;
 
-// LEON 3 FT (UT699). Provides features for the UT699 processor
-// - covers all the erratum fixes for LEON3, but does not support the CASA instruction.
-def : Processor<"ut699", LEON3Itineraries,
-                [FeatureLeon, InsertNOPLoad, FeatureNoFSMULD, FeatureNoFMULS, FixAllFDIVSQRT]>;
+// LEON 3 generic with soft mul/div
+def : Processor<"leon3v7", LEON3Itineraries,
+                [FeatureSoftMulDiv, FeatureNoFSMULD, FeatureLeon, LeonCASA]>;
 
-// LEON3 FT (GR712RC). Provides features for the GR712RC processor.
+// LEON3 (GR712RC)
 def : Processor<"gr712rc", LEON3Itineraries,
                 [FeatureLeon, LeonCASA, FixTN0009, FixTN0011, FixTN0012, FixTN0013]>;
 
-// LEON 4 FT generic
+// LEON 4 generic
 def : Processor<"leon4", LEON4Itineraries,
-                [FeatureLeon, UMACSMACSupport, LeonCASA]>;
+                [FeatureLeon, LeonCASA]>;
 
-// LEON 4 FT (GR740) 
-// TO DO: Place-holder: Processor specific features will be added *very* soon here.
-def : Processor<"gr740", LEON4Itineraries, 
-                [FeatureLeon, UMACSMACSupport, LeonCASA, LeonCycleCounter,
-                 FeaturePWRPSR]>;
+// LEON 4 (GR740)
+def : Processor<"gr740", LEON4Itineraries,
+                [FeatureLeon, LeonCASA, LeonCycleCounter, FeaturePWRPSR]>;
 
 def : Processor<"gr716", GR716Itineraries,
                 [FeatureLeon, LeonCASA, LeonCycleCounter, FeaturePWRPSR]>;

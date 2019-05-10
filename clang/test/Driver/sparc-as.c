@@ -136,15 +136,7 @@
 // RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \
 // RUN: | FileCheck -check-prefix=SPARC-LEON %s
 
-// RUN: %clang -mcpu=leon2 -no-canonical-prefixes -target sparc \
-// RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \
-// RUN: | FileCheck -check-prefix=SPARC-V8 %s
-
-// RUN: %clang -mcpu=at697e -no-canonical-prefixes -target sparc \
-// RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \
-// RUN: | FileCheck -check-prefix=SPARC-V8 %s
-
-// RUN: %clang -mcpu=at697f -no-canonical-prefixes -target sparc \
+// RUN: %clang -mcpu=leon -no-canonical-prefixes -target sparc \
 // RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \
 // RUN: | FileCheck -check-prefix=SPARC-V8 %s
 
@@ -152,9 +144,9 @@
 // RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \
 // RUN: | FileCheck -check-prefix=SPARC-LEON %s
 
-// RUN: %clang -mcpu=ut699 -no-canonical-prefixes -target sparc \
+// RUN: %clang -mcpu=leon3v7 -no-canonical-prefixes -target sparc \
 // RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \
-// RUN: | FileCheck -check-prefix=SPARC-V8 %s
+// RUN: | FileCheck -check-prefix=SPARC-LEON %s
 
 // RUN: %clang -mcpu=gr712rc -no-canonical-prefixes -target sparc \
 // RUN: -no-integrated-as --sysroot=%S/Inputs/basic_netbsd_tree %s -### 2>&1 \

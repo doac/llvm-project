@@ -1,4 +1,4 @@
-; RUN: llc %s -O0 -march=sparc -mcpu=leon2 -o - | FileCheck %s
+; RUN: llc %s -O0 -march=sparc -mcpu=leon -o - | FileCheck %s
 ; RUN: llc %s -O0 -march=sparc -mcpu=leon3 -o - | FileCheck %s
 ; RUN: llc %s -O0 -march=sparc -mcpu=leon4 -o - | FileCheck %s
 
