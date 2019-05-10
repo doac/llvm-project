@@ -406,25 +406,30 @@ void tools::gaisler::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                               options::OPT_Z_Flag, options::OPT_r});
 
     AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
-    //if (D.CCCIsCXX()) {
-    // For some reason D.CCIsCXX is failing. Use driver Name attribute instead.
-    // Note that the binary must be a copy - not a symlink!
-    if (D.Name.find("clang++") != std::string::npos)
-      TC.AddCXXStdlibLibArgs(Args, CmdArgs);
+
+    CmdArgs.push_back("--start-group");
+    // only include if qbsp/qrtems is specified
+    if (Args.hasArg(options::OPT_qbsp) || Args.hasArg(options::OPT_qrtems)) {
+      CmdArgs.push_back("-lrtemsbsp");
+      CmdArgs.push_back("-lrtemscpu");
+    }
 
     if (UseDefaultLibs) {
-      CmdArgs.push_back("-lgcc");
-      CmdArgs.push_back("--start-group");
-      // only include if qbsp/qrtems is specified
-      if (Args.hasArg(options::OPT_qbsp) || Args.hasArg(options::OPT_qrtems)) {
-        CmdArgs.push_back("-lrtemsbsp");
-        CmdArgs.push_back("-lrtemscpu");
-      }
+      //if (D.CCCIsCXX()) {
+      // For some reason D.CCIsCXX is failing. Use driver Name attribute instead.
+      // Note that the binary must be a copy - not a symlink!
+      if (D.Name.find("clang++") != std::string::npos)
+        TC.AddCXXStdlibLibArgs(Args, CmdArgs);
+
       CmdArgs.push_back("-latomic");
       CmdArgs.push_back("-lc");
-      CmdArgs.push_back("-lgcc"); // circularly dependent on rtems
-      CmdArgs.push_back("--end-group");
+
+      if (TC.GetRuntimeLibType(Args) == ToolChain::RLT_CompilerRT)
+        CmdArgs.push_back("-lclang_rt.builtins-sparc.a");
+      else
+        CmdArgs.push_back("-lgcc");
     }
+    CmdArgs.push_back("--end-group");
 
     if(!Args.hasArg(options::OPT_T) && !Args.hasArg(options::OPT_qnolinkcmds)) {
       // only include linkcmds if it is found correctly
@@ -434,8 +439,6 @@ void tools::gaisler::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                                                         TC.GetFilePath("linkcmds")));
       }
     }
-
-    CmdArgs.push_back("-lgcc");
 
     if (UseStartfiles && ( Args.hasArg(options::OPT_qbsp) ||
         Args.hasArg(options::OPT_qrtems)) ) {
