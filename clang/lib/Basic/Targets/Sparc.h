@@ -171,6 +171,11 @@ public:
     // on up to 64 bits.
     MaxAtomicPromoteWidth = 64;
     MaxAtomicInlineWidth = 32;
+
+    CPUKind CK = getCPUKind(Opts.CPU);
+
+    if (CK == CK_LEON || CK == CK_V7)
+      MaxAtomicInlineWidth = 8;
   }
 
   void getTargetDefines(const LangOptions &Opts,
