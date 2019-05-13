@@ -58,6 +58,7 @@ SparcSubtarget &SparcSubtarget::initializeSubtargetDependencies(StringRef CPU,
   DetectRoundChange = false;
   HasLeonCycleCounter = false;
   FixTN0009 = false;
+  FixTN0010 = false;
   FixTN0011 = false;
   FixTN0012 = false;
   FixTN0013 = false;

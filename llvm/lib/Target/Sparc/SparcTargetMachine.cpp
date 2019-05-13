@@ -195,7 +195,8 @@ void SparcPassConfig::addPreEmitPass() {
     addPass(new FixAllFDIVSQRT());
   }
 
-  if (ST->fixTN0009() || ST->fixTN0011() || ST->fixTN0012() || ST->fixTN0013())
+  if (ST->fixTN0009() || ST->fixTN0010() || ST->fixTN0011() ||
+      ST->fixTN0012() || ST->fixTN0013())
     addPass(createErrataWorkaroundPass());
 }
 

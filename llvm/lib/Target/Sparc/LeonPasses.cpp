@@ -34,6 +34,8 @@ struct ErrataWorkaround : public MachineFunctionPass {
   bool runOnMachineFunction(MachineFunction &MF) override;
   bool checkSeqTN0009A(MachineBasicBlock::iterator I);
   bool checkSeqTN0009B(MachineBasicBlock::iterator I);
+  bool checkSeqTN0010First(MachineBasicBlock &MBB);
+  bool checkSeqTN0010(MachineBasicBlock::iterator I);
   bool checkSeqTN0012(MachineBasicBlock::iterator I);
   bool checkSeqTN0013(MachineBasicBlock::iterator I);
 
@@ -160,11 +162,73 @@ bool ErrataWorkaround::checkSeqTN0009B(MachineBasicBlock::iterator I) {
   return true;
 }
 
+bool ErrataWorkaround::checkSeqTN0010(MachineBasicBlock::iterator I) {
+
+  // Check for load instruction or branch bundled with load instruction
+  if (!I->mayLoad())
+    return false;
+
+  // Check for branch to atomic instruction with load in delay slot
+  if (I->isBranch()) {
+    MachineBasicBlock *TargetMBB = I->getOperand(0).getMBB();
+    MachineBasicBlock::iterator MI = TargetMBB->begin();
+
+    while (MI != TargetMBB->end() && MI->isMetaInstruction())
+      MI++;
+
+    if (MI == TargetMBB->end())
+      return false;
+
+    switch (MI->getOpcode()) {
+    case SP::SWAPrr:
+    case SP::SWAPri:
+    case SP::CASAasi10:
+      insertNop(MI);
+      break;
+    default:
+      break;
+    }
+  }
+
+  // Check for load followed by atomic instruction
+  MachineBasicBlock::iterator MI = I;
+  if (!moveNext(MI))
+    return false;
+
+  switch (MI->getOpcode()) {
+  case SP::SWAPrr:
+  case SP::SWAPri:
+  case SP::CASAasi10:
+    break;
+  default:
+    return false;
+  }
+  insertNop(MI);
+  return true;
+}
+
+// Do not allow functions to begin with an atomic instruction
+bool ErrataWorkaround::checkSeqTN0010First(MachineBasicBlock &MBB) {
+  MachineBasicBlock::iterator I = MBB.begin();
+  while (I != MBB.end() && I->isMetaInstruction())
+    I++;
+  switch (I->getOpcode()) {
+  case SP::SWAPrr:
+  case SP::SWAPri:
+  case SP::CASAasi10:
+    break;
+  default:
+    return false;
+  }
+  insertNop(I);
+  return true;
+}
+
 // Inserts a NOP instruction at the target of an integer branch if the
 // target is a floating-point instruction or floating-point branch.
 bool ErrataWorkaround::checkSeqTN0012(MachineBasicBlock::iterator I) {
 
-  if (I->getOpcode() != SP::BCOND)
+  if (I->getOpcode() != SP::BCOND && I->getOpcode() != SP::BCONDA)
     return false;
 
   MachineBasicBlock *TargetMBB = I->getOperand(0).getMBB();
@@ -247,12 +311,17 @@ bool ErrataWorkaround::runOnMachineFunction(MachineFunction &MF) {
   Subtarget = &MF.getSubtarget<SparcSubtarget>();
   TII = Subtarget->getInstrInfo();
 
+  if (Subtarget->fixTN0010())
+    Changed |= checkSeqTN0010First(MF.front());
+
   for (auto &MBB : MF) {
     for (auto &I : MBB) {
       if (Subtarget->fixTN0009()) {
         Changed |= checkSeqTN0009A(I);
         Changed |= checkSeqTN0009B(I);
       }
+      if (Subtarget->fixTN0010())
+        Changed |= checkSeqTN0010(I);
       if (Subtarget->fixTN0012())
         Changed |= checkSeqTN0012(I);
       if (Subtarget->fixTN0013())

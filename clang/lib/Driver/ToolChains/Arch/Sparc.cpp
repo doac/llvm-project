@@ -122,6 +122,12 @@ void sparc::getSparcTargetFeatures(const Driver &D, const ArgList &Args,
     Features.push_back("+fix-tn0013");
   }
 
+  if (Args.hasArg(options::OPT_mfix_ut700)) {
+    Features.push_back("+fix-tn0009");
+    Features.push_back("+fix-tn0010");
+    Features.push_back("+fix-tn0013");
+  }
+
   if (Args.hasFlag(options::OPT_ffixed_g2, options::OPT_fcall_used_g2, false))
     Features.push_back("+reserve-reg-g2");
   if (Args.hasFlag(options::OPT_ffixed_g3, options::OPT_fcall_used_g3, false))

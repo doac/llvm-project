@@ -60,6 +60,7 @@ class SparcSubtarget : public SparcGenSubtargetInfo {
   bool DetectRoundChange;
   bool HasLeonCycleCounter;
   bool FixTN0009;
+  bool FixTN0010;
   bool FixTN0011;
   bool FixTN0012;
   bool FixTN0013;
@@ -126,6 +127,7 @@ public:
   bool detectRoundChange() const { return DetectRoundChange; }
   bool hasLeonCycleCounter() const { return HasLeonCycleCounter; }
   bool fixTN0009() const { return FixTN0009; }
+  bool fixTN0010() const { return FixTN0010; }
   bool fixTN0011() const { return FixTN0011; }
   bool fixTN0012() const { return FixTN0012; }
   bool fixTN0013() const { return FixTN0013; }

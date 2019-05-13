@@ -70,6 +70,13 @@ def FixTN0009 : SubtargetFeature<
   "Enable workaround for errata described in GRLIB-TN-0009"
 >;
 
+def FixTN0010 : SubtargetFeature<
+  "fix-tn0010",
+  "FixTN0010",
+  "true",
+  "Enable workaround for errata described in GRLIB-TN-0010"
+>;
+
 def FixTN0011 : SubtargetFeature<
   "fix-tn0011",
   "FixTN0011",
