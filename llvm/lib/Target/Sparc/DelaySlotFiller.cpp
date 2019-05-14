@@ -295,6 +295,9 @@ bool Filler::findAnnulledDelayInstr(MachineBasicBlock &MBB,
   if (AfterI != TargetMBB->end() && AfterI->hasDelaySlot())
     return false;
 
+  if (Subtarget->fixTN0009() && I->mayStore())
+    return false;
+
   MachineFunction *MF = TargetMBB->getParent();
   MachineBasicBlock *NewBlock;
 
