@@ -59,6 +59,8 @@ bool Builtin::Context::isBuiltinFunc(const char *Name) {
 
 bool Builtin::Context::builtinIsSupported(const Builtin::Info &BuiltinInfo,
                                           const LangOptions &LangOpts) {
+  if (strcmp(BuiltinInfo.Name, "setjmp") == 0)
+      return true;
   bool BuiltinsUnsupported =
       (LangOpts.NoBuiltin || LangOpts.isNoBuiltinFunc(BuiltinInfo.Name)) &&
       strchr(BuiltinInfo.Attributes, 'f');
