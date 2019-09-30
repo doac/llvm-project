@@ -103,6 +103,11 @@ BitVector SparcRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
 
 bool SparcRegisterInfo::requiresVirtualBaseRegisters(
     const MachineFunction &MF) const {
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+
+  if (Subtarget.isREX())
+    return false;
+
   return true;
 }
 
