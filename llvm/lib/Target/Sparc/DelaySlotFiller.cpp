@@ -144,6 +144,22 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB,
 
         Changed = true;
       }
+
+      if (MI->getOpcode() == SP::WRASRrr) {
+        BuildMI(MBB, I, MI->getDebugLoc(), TII->get(SP::RNOP));
+        BuildMI(MBB, I, MI->getDebugLoc(), TII->get(SP::RNOP));
+        BuildMI(MBB, I, MI->getDebugLoc(), TII->get(SP::RNOP));
+        Changed = true;
+        continue;
+      }
+
+      if (MI->getOpcode() == SP::FCMPS || MI->getOpcode() == SP::FCMPD ||
+          MI->getOpcode() == SP::FCMPQ) {
+        BuildMI(MBB, I, MI->getDebugLoc(), TII->get(SP::RNOP));
+        Changed = true;
+        continue;
+      }
+
       continue;
     }
 
