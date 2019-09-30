@@ -734,6 +734,9 @@ bool SparcTargetLowering::IsEligibleForTailCallOptimization(
   auto &Outs = CLI.Outs;
   auto &Caller = MF.getFunction();
 
+  if (Subtarget->isREX())
+    return false;
+
   // Do not tail call opt functions with "disable-tail-calls" attribute.
   if (Caller.getFnAttribute("disable-tail-calls").getValueAsString() == "true")
     return false;
