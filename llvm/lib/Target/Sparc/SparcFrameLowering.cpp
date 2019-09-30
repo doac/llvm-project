@@ -746,11 +746,12 @@ void SparcFrameLowering::emitFlatEpilogue(MachineFunction &MF,
 
 void SparcFrameLowering::processFunctionBeforeFrameFinalized(
     MachineFunction &MF, RegScavenger *RS) const {
-  const TargetRegisterInfo *RegInfo = MF.getSubtarget().getRegisterInfo();
+  const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  const TargetRegisterInfo *RegInfo = Subtarget.getRegisterInfo();
   MachineFrameInfo &MFI = MF.getFrameInfo();
 
   const TargetRegisterClass *RC = &SP::IntRegsRegClass;
-  if (!isInt<13>(MFI.estimateStackSize(MF))) {
+  if (!Subtarget.isREX() && !isInt<13>(MFI.estimateStackSize(MF))) {
     int RegScavFI = MFI.CreateStackObject(
         RegInfo->getSpillSize(*RC), RegInfo->getSpillAlignment(*RC), false);
     RS->addScavengingFrameIndex(RegScavFI);

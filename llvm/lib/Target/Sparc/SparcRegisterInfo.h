@@ -57,6 +57,12 @@ struct SparcRegisterInfo : public SparcGenRegisterInfo {
     return true;
   }
 
+  bool saveScavengerRegister(MachineBasicBlock &MBB,
+                             MachineBasicBlock::iterator I,
+                             MachineBasicBlock::iterator &UseMI,
+                             const TargetRegisterClass *RC,
+                             unsigned Reg) const override;
+
   bool requiresVirtualBaseRegisters(const MachineFunction &MF) const override;
 
   bool isFrameOffsetLegal(const MachineInstr *MI, unsigned BaseReg,

@@ -64,6 +64,9 @@ BitVector SparcRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   if (Subtarget.useFlatRegisterMode() && TFI->hasFP(MF))
     markSuperRegs(Reserved, SP::L7);
 
+  if (Subtarget.isREX())
+    markSuperRegs(Reserved, SP::L0);
+
   if (Subtarget.reserveRegG2())
     markSuperRegs(Reserved, SP::G2);
   if (Subtarget.reserveRegG3())
@@ -341,6 +344,30 @@ static void replaceFI(MachineFunction &MF, MachineBasicBlock::iterator II,
   MI.getOperand(FIOperandNum + 1).ChangeToImmediate(0);
 }
 
+/// saveScavengerRegister - Spill the register so it can be used by the
+/// register scavenger.
+bool SparcRegisterInfo::saveScavengerRegister(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
+    MachineBasicBlock::iterator &UseMI, const TargetRegisterClass *RC,
+    unsigned Reg) const {
+
+  const SparcSubtarget &Subtarget =
+      MBB.getParent()->getSubtarget<SparcSubtarget>();
+
+  if (!Subtarget.isREX())
+    return false;
+
+  const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
+  DebugLoc DL;
+  BuildMI(MBB, I, DL, TII.get(SP::RMOV))
+      .addReg(SP::L0, RegState::Define)
+      .addReg(Reg, RegState::Kill);
+  BuildMI(MBB, UseMI, DL, TII.get(SP::RMOV))
+      .addReg(Reg, RegState::Define)
+      .addReg(SP::L0, RegState::Kill);
+
+  return true;
+}
 
 void
 SparcRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
