@@ -131,7 +131,8 @@ void LiveRegUnits::addLiveOuts(const MachineBasicBlock &MBB) {
 
   // To get the live-outs we simply merge the live-ins of all successors.
   for (const MachineBasicBlock *Succ : MBB.successors())
-    addBlockLiveIns(*this, *Succ);
+    if (!Succ->isEHPad())
+      addBlockLiveIns(*this, *Succ);
 
   // For the return block: Add all callee saved registers.
   if (MBB.isReturnBlock()) {
