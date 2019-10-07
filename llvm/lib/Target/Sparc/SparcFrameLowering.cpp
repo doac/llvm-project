@@ -420,8 +420,13 @@ int SparcFrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI
   int64_t FrameOffset = MF.getFrameInfo().getObjectOffset(FI) +
       Subtarget.getStackPointerBias();
 
-  if (UseFP && !hasFP(MF) && (FrameOffset < -4096) &&
+  if (UseFP && !Subtarget.isREX() && !hasFP(MF) && (FrameOffset < -4096) &&
       (FrameOffset + MF.getFrameInfo().getStackSize()) <= 4095)
+    UseFP = false;
+
+  /* REX can only use 16-bit instructions with positive immediate */
+  if (UseFP && Subtarget.isREX() && !hasFP(MF) &&
+      (FrameOffset + MF.getFrameInfo().getStackSize()) <= 124)
     UseFP = false;
 
   if (UseFP) {
