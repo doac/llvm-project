@@ -2569,7 +2569,7 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG,
       bool isOne = TrueValConst && TrueValConst->isOne();
 
       SDValue ZeroIfEq = DAG.getNode(ISD::XOR, dl, MVT::i32, LHS, RHS);
-      SDValue Zero = DAG.getRegister(SP::G0, MVT::i32);
+      SDValue Zero = DAG.getConstant(0, dl, MVT::i32);
       SDValue CarryIfNotEq = DAG.getNode(SPISD::CMPICC, dl, MVT::Glue, Zero, ZeroIfEq);
 
       SDValue Const = Equal ? DAG.getConstant(-1, dl, MVT::i32) : Zero;
