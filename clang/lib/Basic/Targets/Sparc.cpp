@@ -169,6 +169,9 @@ void SparcV8TargetInfo::getTargetDefines(const LangOptions &Opts,
   if (FixTN0009)
     Builder.defineMacro("__FIX_LEON3FT_B2BST");
 
+  if (REX)
+    Builder.defineMacro("__REX");
+
   if (getTriple().getVendor() == llvm::Triple::Myriad) {
     std::string MyriadArchValue, Myriad2Value;
     Builder.defineMacro("__sparc_v8__");

@@ -151,10 +151,11 @@ public:
 // SPARC v8 is the 32-bit mode selected by Triple::sparc.
 class LLVM_LIBRARY_VISIBILITY SparcV8TargetInfo : public SparcTargetInfo {
   bool FixTN0009;
+  bool REX;
 
 public:
   SparcV8TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
-      : SparcTargetInfo(Triple, Opts), FixTN0009(false) {
+      : SparcTargetInfo(Triple, Opts), FixTN0009(false), REX(false) {
     resetDataLayout("E-m:e-p:32:32-i64:64-f128:64-n32-S64");
     // NetBSD / OpenBSD use long (same as llvm default); everyone else uses int.
     switch (getTriple().getOS()) {
@@ -187,6 +188,8 @@ public:
     for (const auto &Feature : Features) {
       if (Feature == "+fix-tn0009")
         FixTN0009 = true;
+      if (Feature == "+rex")
+        REX = true;
     }
     return true;
   }
