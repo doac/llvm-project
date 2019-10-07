@@ -2540,7 +2540,7 @@ static SDValue LowerBR_CC(SDValue Op, SelectionDAG &DAG,
 
 static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG,
                               const SparcTargetLowering &TLI,
-                              bool hasHardQuad) {
+                              bool hasHardQuad, const SparcSubtarget * Subtarget) {
   SDValue LHS = Op.getOperand(0);
   SDValue RHS = Op.getOperand(1);
   ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
@@ -2553,7 +2553,8 @@ static SDValue LowerSELECT_CC(SDValue Op, SelectionDAG &DAG,
   // an CMP[IF]CC/SELECT_[IF]CC pair, find the original compared values.
   LookThroughSetCC(LHS, RHS, CC, SPCC);
 
-  if (CC == ISD::SETEQ || CC == ISD::SETNE) {
+  if ((CC == ISD::SETEQ || CC == ISD::SETNE) && LHS.getValueType() == MVT::i32
+      && !Subtarget->is64Bit()) {
 
     ConstantSDNode *TrueValConst = dyn_cast<ConstantSDNode>(TrueVal);
     ConstantSDNode *FalseValConst = dyn_cast<ConstantSDNode>(FalseVal);
@@ -3132,7 +3133,7 @@ LowerOperation(SDValue Op, SelectionDAG &DAG) const {
   case ISD::BR_CC:              return LowerBR_CC(Op, DAG, *this,
                                                   hasHardQuad);
   case ISD::SELECT_CC:          return LowerSELECT_CC(Op, DAG, *this,
-                                                      hasHardQuad);
+                                                      hasHardQuad, Subtarget);
   case ISD::VASTART:            return LowerVASTART(Op, DAG, *this);
   case ISD::VAARG:              return LowerVAARG(Op, DAG);
   case ISD::DYNAMIC_STACKALLOC: return LowerDYNAMIC_STACKALLOC(Op, DAG,
