@@ -115,3 +115,7 @@ int SparcSubtarget::getAdjustedFrameSize(int frameSize) const {
 bool SparcSubtarget::enableMachineScheduler() const {
   return true;
 }
+
+bool SparcSubtarget::enablePostRAScheduler() const {
+  return !isREX();
+}

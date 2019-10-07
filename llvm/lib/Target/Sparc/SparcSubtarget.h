@@ -91,9 +91,7 @@ public:
 
   bool enableMachineScheduler() const override;
 
-  bool enablePostRAScheduler() const override {
-    return true;
-  }
+  bool enablePostRAScheduler() const override;
 
   AntiDepBreakMode getAntiDepBreakMode() const override {
     return TargetSubtargetInfo::ANTIDEP_ALL;
