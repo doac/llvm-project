@@ -110,7 +110,7 @@ static bool findGaislerMultilibs(const Driver &D, const llvm::Triple &TargetTrip
   Result.Multilibs.push_back(gr740_soft);
   Result.Multilibs.push_back(gr712rc_soft);
 
-  /*  Multilib leon3_rex = Multilib()
+  Multilib leon3_rex = Multilib()
                        .gccSuffix("/leon3/rex")
                        .includeSuffix("/leon3")
                        .flag("+mcpu=leon3")
@@ -137,7 +137,7 @@ static bool findGaislerMultilibs(const Driver &D, const llvm::Triple &TargetTrip
                        .flag("+mrex")
                        .flag("+msoft-float");
   Result.Multilibs.push_back(rex_soft);
-  */
+
   Multilib gr740 = Multilib()
                        .gccSuffix("/gr740")
                        .includeSuffix("/leon3")
