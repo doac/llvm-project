@@ -31,13 +31,18 @@ namespace llvm {
 
     /// IsLeafProc - True if the function is a leaf procedure.
     bool IsLeafProc;
+
+    /// InlineAsmUsesPhysWinReg - True if the function contains inline
+    /// assembly that explicitly uses one of the %o, %l, or %i registers.
+    bool InlineAsmUsesPhysWinReg;
+
   public:
     SparcMachineFunctionInfo()
       : GlobalBaseReg(0), VarArgsFrameOffset(0), SRetReturnReg(0),
-        IsLeafProc(false) {}
+        IsLeafProc(false), InlineAsmUsesPhysWinReg(false) {}
     explicit SparcMachineFunctionInfo(MachineFunction &MF)
       : GlobalBaseReg(0), VarArgsFrameOffset(0), SRetReturnReg(0),
-        IsLeafProc(false) {}
+        IsLeafProc(false), InlineAsmUsesPhysWinReg(false) {}
 
     unsigned getGlobalBaseReg() const { return GlobalBaseReg; }
     void setGlobalBaseReg(unsigned Reg) { GlobalBaseReg = Reg; }
@@ -50,6 +55,9 @@ namespace llvm {
 
     void setLeafProc(bool rhs) { IsLeafProc = rhs; }
     bool isLeafProc() const { return IsLeafProc; }
+
+    bool getInlineAsmUsesPhysWinReg() const { return InlineAsmUsesPhysWinReg; }
+    void setInlineAsmUsesPhysWinReg(bool rhs) { InlineAsmUsesPhysWinReg = rhs; }
   };
 }
 

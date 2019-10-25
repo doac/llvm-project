@@ -458,6 +458,7 @@ bool SparcFrameLowering::isLeafProc(MachineFunction &MF) const
   MachineRegisterInfo &MRI = MF.getRegInfo();
   MachineFrameInfo    &MFI = MF.getFrameInfo();
   const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
+  SparcMachineFunctionInfo *SMFI = MF.getInfo<SparcMachineFunctionInfo>();
 
   if (Subtarget.isREX() && (MRI.isPhysRegUsed(SP::I4) ||
                             MRI.isPhysRegUsed(SP::I5) ||
@@ -467,6 +468,7 @@ bool SparcFrameLowering::isLeafProc(MachineFunction &MF) const
   return !(MFI.hasCalls()                  // has calls
            || MRI.isPhysRegUsed(SP::L0)    // Too many registers needed
            || MRI.isPhysRegUsed(SP::O6)    // %sp is used
+           || SMFI->getInlineAsmUsesPhysWinReg() // do not remap inline asm
            || hasFP(MF));                  // need %fp
 }
 

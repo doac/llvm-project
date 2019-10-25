@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SparcTargetMachine.h"
+#include "SparcMachineFunctionInfo.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
 #include "llvm/IR/Intrinsics.h"
@@ -206,6 +207,14 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
 
     if (i < InlineAsm::Op_FirstOperand)
       continue;
+
+    // If the inline asm uses physical registers we do not want to treat
+    // the function as a leaf function as that will remap the registers .
+    if (RegisterSDNode *R = dyn_cast<RegisterSDNode>(N->getOperand(i))) {
+      SparcMachineFunctionInfo *MFI = MF->getInfo<SparcMachineFunctionInfo>();
+      if ((R->getReg() >= SP::I0) && (R->getReg() <= SP::O7))
+        MFI->setInlineAsmUsesPhysWinReg(true);
+    }
 
     if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(N->getOperand(i))) {
       Flag = C->getZExtValue();
