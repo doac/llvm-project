@@ -331,6 +331,13 @@ bool Filler::findAnnulledDelayInstr(MachineBasicBlock &MBB,
   if (Subtarget->fixTN0009() && I->mayStore())
     return false;
 
+  if (Subtarget->fixTN0012() &&
+      (I->getNumOperands() != 0 &&
+       I->getOperand(0).isReg()) &&
+      (SP::FPRegsRegClass.contains(I->getOperand(0).getReg()) ||
+       SP::DFPRegsRegClass.contains(I->getOperand(0).getReg())))
+    return false;
+
   MachineFunction *MF = TargetMBB->getParent();
   MachineBasicBlock *NewBlock;
 
