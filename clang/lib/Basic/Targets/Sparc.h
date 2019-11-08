@@ -178,6 +178,9 @@ public:
 
     CPUKind CK = getCPUKind(Opts.CPU);
 
+    if (CK == CK_LEON3_GR712RC)
+      FixTN0009 = true;
+
     if (CK == CK_LEON || CK == CK_V7)
       MaxAtomicInlineWidth = 8;
   }
