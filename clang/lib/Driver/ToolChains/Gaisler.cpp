@@ -454,12 +454,26 @@ void tools::gaisler::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   } else { // BCC
     if (UseStartfiles) {
-      if (Args.hasArg(options::OPT_qsvt)) {
-        CmdArgs.push_back(
-            Args.MakeArgString(TC.GetFilePath("trap_table_svt.S.o")));
+      if (
+        Args.hasArg(options::OPT_qfix_tn0018) ||
+        Args.hasArg(options::OPT_mfix_gr712rc) ||
+        Args.hasArg(options::OPT_mfix_ut700)
+      ) {
+        if (Args.hasArg(options::OPT_qsvt)) {
+          CmdArgs.push_back(
+              Args.MakeArgString(TC.GetFilePath("trap_table_svt_tn0018.S.o")));
+        } else {
+          CmdArgs.push_back(
+              Args.MakeArgString(TC.GetFilePath("trap_table_mvt_tn0018.S.o")));
+        }
       } else {
-        CmdArgs.push_back(
-            Args.MakeArgString(TC.GetFilePath("trap_table_mvt.S.o")));
+        if (Args.hasArg(options::OPT_qsvt)) {
+          CmdArgs.push_back(
+              Args.MakeArgString(TC.GetFilePath("trap_table_svt.S.o")));
+        } else {
+          CmdArgs.push_back(
+              Args.MakeArgString(TC.GetFilePath("trap_table_mvt.S.o")));
+        }
       }
 
       CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("crt0.S.o")));

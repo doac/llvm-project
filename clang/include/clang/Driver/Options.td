@@ -3193,6 +3193,7 @@ defm whole_file : BooleanFFlag<"whole-file">, Group<gfortran_Group>;
 // "q" flags for BCC/RCC
 def qbsp : Joined<["-"], "qbsp=">, Group<q_Group>;
 def qsvt : Flag<["-"], "qsvt">, Group<q_Group>;
+def qfix_tn0018 : Flag<["-"], "qfix-tn0018">, Group<q_Group>;
 def qnano : Flag<["-"], "qnano">, Group<q_Group>;
 def qnolinkcmds : Flag<["-"], "qnolinkcmds">, Group<q_Group>;
 def qrtems : Flag<["-"], "qrtems">, Group<q_Group>;
